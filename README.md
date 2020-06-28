@@ -22,7 +22,7 @@ Helper scripts have been written to automate usage:
 
 Mandatory:
 
-* `threshold` - Minimum number of packets for an event to be annotated and saved.
+* `threshold` - Number of seconds that must elapse before an event is considered over
 * `samples` - Number of samples to take for events.
 * `eventout` - Path to write JSON results to.
 * `pcap` - Path to input pcap file(s), separated by spaces.
