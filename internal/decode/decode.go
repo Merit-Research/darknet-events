@@ -19,9 +19,9 @@ type Decoder struct {
 	icmp4    layers.ICMPv4
 	tcp      layers.TCP
 	udp      layers.UDP
-	sip      layers.SIP
-	dns      layers.DNS
-	ntp      layers.NTP
+	//sip      layers.SIP
+	//dns      layers.DNS
+	//ntp      layers.NTP
 	pay      gopacket.Payload
 	parser   *gopacket.DecodingLayerParser
 	types    []gopacket.LayerType
@@ -33,8 +33,10 @@ func NewDecoder() *Decoder {
 	d := new(Decoder)
 	d.parser = gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet,
 		&d.eth, &d.ip4, &d.icmp4, &d.tcp, &d.udp,
-		&d.sip, &d.dns, &d.ntp, &d.pay)
+		&d.pay)
+		//&d.sip, &d.dns, &d.ntp, &d.pay)
 	d.types = make([]gopacket.LayerType, 4, 4)
+	d.parser.IgnoreUnsupported = true
 	d.unknowns = make(map[string]uint)
 	return d
 }
