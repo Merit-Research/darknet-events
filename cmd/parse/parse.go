@@ -44,8 +44,9 @@ func config() *Config {
 
 	threshold := flag.Int("threshold", 0, "Number of seconds that "+
 		"must elapse before an event is considered over.")
-	minUniques := flag.Int("uniques", 0, "Minimum number of unique "+
-		"destinations that must be hit for an event to be considered.")
+	minUniques := flag.Int("uniques", 1, "Minimum number of unique "+
+		"destinations that must be hit for an event to be considered (must " +
+		"be a positive number).")
 	minScanRate := flag.Float64("rate", 0, "Minimum global packet rate for "+
 		"an event to be considered.")
 	numSamples := flag.Int("samples", 0, "Number of packet samples "+
@@ -87,6 +88,9 @@ func config() *Config {
 	}
 	if *pcapPathsString == "" {
 		log.Fatal("Must specify at least one pcap file.")
+	}
+	if *minUniques <= 0 {
+		log.Fatal("Must specify a positive uniques number.")
 	}
 
 	// Process and save parameters.
