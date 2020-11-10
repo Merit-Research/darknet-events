@@ -39,7 +39,7 @@ Optional:
 * `geoin` - Path to MaxMind Cities DB. No Geographic annotations will be added if omitted.
 * `pfx2asin` - Path to prefix2as DB. No IP/Prefix annotations will be added if omitted.
 * `dns` - List of paths to DNS servers. No reverse pointer lookups will be made if omitted. If several are included, one will be picked at random for each query.
-* `uniques` - Minimum number of unique IP destinations required for an event to be annotated and saved. If not given, defaults to 0.
+* `uniques` - Minimum number of unique IP destinations required for an event to be annotated and saved. If not given, defaults to 1.
 * `rate` - Minimum global scan rate (in PPS) for an event to be annotated and saved. If not given, defaults to 0.
 
 ### Example Usage:
