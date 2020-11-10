@@ -62,17 +62,26 @@ The results of each run are saved in JSON format with the following members:
 
 The field "traffic type" is encoded as follows:
 
-Type| ICMPEchoRequest | ICMPEchoReply | ICMPDestinationUnreachable | ICMPSourceQuench
---- | --- | --- | --- |--- 
-Code | 0 | 1 | 2 | 3  
-Type | ICMPRedirect | ICMPTimeExceeded | ICMPParameterProblem | ICMPTimestampReply 
-Code | 4 | 5 | 6 | 7  
-Type | ICMPInfoReply | ICMPAddressMaskReply |  ICMPOther | TCPSYN
-Code | 8 | 9 | 10 | 11  
-Type | TCPSYNACK | TCPACK |  TCPRST | TCPOther
-Code | 12 | 13 | 14 | 15  
-Type | UDP | UnknownTraffic | Reserved  | Reserved
-Code | 16 | 17 | 18  | 19   
+Type                        | Code
+---                         | ---
+ICMPEchoRequest             | 0
+ICMPEchoReply               | 1
+ICMPDestinationUnreachable  | 2
+ICMPSourceQuench            | 3
+ICMPRedirect                | 4
+ICMPTimeExceeded            | 5
+ICMPParameterProblem        | 6
+ICMPTimestampReply          | 7
+ICMPInfoReply               | 8
+ICMPAddressMaskReply        | 9
+ICMPOther                   | 10
+TCPSYN                      | 11
+TCPSYNACK                   | 12
+TCPACK                      | 13
+TCPRST                      | 14
+TCPOther                    | 15
+UDP                         | 16
+UnknownTraffic              | 17
 
 
 ## Additional Notes
