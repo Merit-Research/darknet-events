@@ -58,6 +58,13 @@ The results of each run are saved in JSON format with the following members:
 
 ```source IP, port, traffic type, first packet time (utc), last packet time (utc), # of packets, # of bytes total, # unique destinations, # unique /24 destinations, latitude, longitude, ISO country code, city, ASN number, organisation, prefix, RDNS pointer(s), zmap flag, masscan flag, mirai flag, sample(s), tcp flags, icmp types```
 
+### Traffic types
+
+The field "traffic type" is encoded as follows:
+
+Attempt | #1 | #2 | #3 | #4 | #5 | #6 | #7 | #8 | #9 | #10 | #11
+--- | --- | --- | --- |--- |--- |--- |--- |--- |--- |--- |---
+Seconds | 301 | 283 | 290 | 286 | 289 | 285 | 287 | 287 | 272 | 276 | 269
 
 ## Additional Notes
 
