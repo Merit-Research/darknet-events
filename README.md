@@ -65,12 +65,22 @@ The field "traffic type" is encoded as follows:
 Type| ICMPEchoRequest | ICMPEchoReply | ICMPDestinationUnreachable | ICMPSourceQuench
 --- | --- | --- | --- |--- 
 Code | 0 | 1 | 2 | 3  
+
 Type | ICMPRedirect | ICMPTimeExceeded | ICMPParameterProblem | ICMPTimestampReply 
 --- | --- | --- | --- |--- 
 Code | 4 | 5 | 6 | 7  
+
 Type | ICMPInfoReply | ICMPAddressMaskReply |  ICMPOther | TCPSYN
 --- | --- | --- | --- |--- 
 Code | 8 | 9 | 10 | 11  
+
+Type | TCPSYNACK | TCPACK |  TCPRST | TCPOther
+--- | --- | --- | --- |--- 
+Code | 12 | 13 | 14 | 15  
+
+Type | UDP | UnknownTraffic |   | 
+--- | --- | --- | --- |--- 
+Code | 16 | 17 |  |   
 
 
 ## Additional Notes
