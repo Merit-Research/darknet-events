@@ -54,23 +54,13 @@ Running with all options:
 
 ### Results
 
-~~The results of each run are saved in JSON format with the following members:~~
+The results of each run are saved in JSON format with the following members:
 
-```source IP, traffic type, dest port, first packet time, last packet time, # of packets, # of bytes total, # unique destinations, # unique /24 destinations, latitude, longitude, ISO country code, city, ASN number, organisation, prefix, RDNS pointer(s), zmap, masscan, mirai, sample(s)```
+```source IP, port, traffic type, first packet time (utc), last packet time (utc), # of packets, # of bytes total, # unique destinations, # unique /24 destinations, latitude, longitude, ISO country code, city, ASN number, organisation, prefix, RDNS pointer(s), zmap flag, masscan flag, mirai flag, sample(s), tcp flags, icmp types```
 
-// To be updated soon.
-
-## To-do
-
-* ~~Move config to flag-based system~~
-* ~~Import and export cache~~
-* ~~Granular traffic decoding~~
-* ~~GeoMind and pfx2as~~
-* ~~DNS data~~
-* ~~Reservoir sampling~~
-* ~~Fingerprinting zmap, Masscan, etc.~~
-* ~~Move packet threshold to packets per second~~
 
 ## Additional Notes
 
 To run `parse` by reading directly off an interface, compile `parse_live` instead, and pass it the `--interface` flag followed by the name of the interface instead of the `--pcap` flag.
+
+Attribution to MaxMind: This product includes GeoLite2 data created by MaxMind, available from http://www.maxmind.com.
