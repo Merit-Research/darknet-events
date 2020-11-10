@@ -78,9 +78,9 @@ Type | TCPSYNACK | TCPACK |  TCPRST | TCPOther
 --- | --- | --- | --- |--- 
 Code | 12 | 13 | 14 | 15  
 
-Type | UDP | UnknownTraffic |   | 
+Type | UDP | UnknownTraffic | -   | - 
 --- | --- | --- | --- |--- 
-Code | 16 | 17 |  |   
+Code | 16 | 17 | -  | -   
 
 
 ## Additional Notes
