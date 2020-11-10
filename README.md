@@ -63,6 +63,7 @@ The results of each run are saved in JSON format with the following members:
 The field "traffic type" is encoded as follows:
 
 Type| ICMPEchoRequest | ICMPEchoReply | ICMPDestinationUnreachable | ICMPSourceQuench
+--- | --- | --- | --- |--- 
 Code | 0 | 1 | 2 | 3  
 Type | ICMPRedirect | ICMPTimeExceeded | ICMPParameterProblem | ICMPTimestampReply 
 Code | 4 | 5 | 6 | 7  
