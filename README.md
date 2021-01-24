@@ -89,3 +89,8 @@ UnknownTraffic              | 17
 To run `parse` by reading directly off an interface, compile `parse_live` instead, and pass it the `--interface` flag followed by the name of the interface instead of the `--pcap` flag.
 
 Attribution to MaxMind: This product includes GeoLite2 data created by MaxMind, available from http://www.maxmind.com.
+
+## Copyright
+
+All software tools within this package are Copyright (c) 2020 Merit Network, Inc.,
+and Stanford University. All Rights Reserved.

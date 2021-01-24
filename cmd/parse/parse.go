@@ -1,3 +1,8 @@
+//
+// All software tools within this package are Copyright (c) 2020 Merit Network, Inc.,
+// and Stanford University. All Rights Reserved.
+// 
+
 package main
 
 import (
