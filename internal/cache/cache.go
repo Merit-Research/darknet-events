@@ -114,7 +114,7 @@ func (c *Cache) Add(es analysis.EventSignature,
 	if _, ok := c.Cache[es]; !ok {
 		c.Cache[es] = analysis.NewEventPackets()
 	}
-	i := c.Cache[es].Add(ip, uint32(len(raw)), t)
+	i := c.Cache[es].Add(ip, uint64(len(raw)), t)
 
 	// If this packet should be sampled, do so.
 	// NOTE: We only sample once there have been enough packets to possibly

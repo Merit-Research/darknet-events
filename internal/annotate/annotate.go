@@ -47,8 +47,8 @@ type Output struct {
 	Traffic       uint16
 	First         time.Time
 	Last          time.Time
-	Packets       uint32
-	Bytes         uint32
+	Packets       uint64
+	Bytes         uint64
 	UniqueDests   int
 	UniqueDest24s int
 	Lat           float64
@@ -87,11 +87,11 @@ type Annotator struct {
 	dnsServers       []string
 	dnsClient        dns.Client
 	dnsChannel       chan ipOutput
-	packetsAnnotated uint32
-	packetsIgnored   uint32
+	packetsAnnotated uint64
+	packetsIgnored   uint64
 	eventsAnnotated  uint32
 	eventsIgnored    uint32
-	packetStats      map[int]uint32 // Temp.
+	packetStats      map[int]uint64 // Temp.
 	eventStats       map[int]uint32 // Temp.
 	wg               sync.WaitGroup
 	dnsWG            sync.WaitGroup
@@ -186,7 +186,7 @@ func NewAnnotator(resultsOutPath string, mmASNInPath string,
 	go a.Reader()
 
 	// Make temporary stats maps.
-	a.packetStats = make(map[int]uint32)
+	a.packetStats = make(map[int]uint64)
 	a.eventStats = make(map[int]uint32)
 
 	return a

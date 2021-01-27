@@ -337,13 +337,13 @@ func (z *EventPackets) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "Packets":
-			z.Packets, err = dc.ReadUint32()
+			z.Packets, err = dc.ReadUint64()
 			if err != nil {
 				err = msgp.WrapError(err, "Packets")
 				return
 			}
 		case "Bytes":
-			z.Bytes, err = dc.ReadUint32()
+			z.Bytes, err = dc.ReadUint64()
 			if err != nil {
 				err = msgp.WrapError(err, "Bytes")
 				return
@@ -423,7 +423,7 @@ func (z *EventPackets) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint32(z.Packets)
+	err = en.WriteUint64(z.Packets)
 	if err != nil {
 		err = msgp.WrapError(err, "Packets")
 		return
@@ -433,7 +433,7 @@ func (z *EventPackets) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	err = en.WriteUint32(z.Bytes)
+	err = en.WriteUint64(z.Bytes)
 	if err != nil {
 		err = msgp.WrapError(err, "Bytes")
 		return
@@ -481,10 +481,10 @@ func (z *EventPackets) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.AppendTime(o, z.Latest)
 	// string "Packets"
 	o = append(o, 0xa7, 0x50, 0x61, 0x63, 0x6b, 0x65, 0x74, 0x73)
-	o = msgp.AppendUint32(o, z.Packets)
+	o = msgp.AppendUint64(o, z.Packets)
 	// string "Bytes"
 	o = append(o, 0xa5, 0x42, 0x79, 0x74, 0x65, 0x73)
-	o = msgp.AppendUint32(o, z.Bytes)
+	o = msgp.AppendUint64(o, z.Bytes)
 	// string "Samples"
 	o = append(o, 0xa7, 0x53, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x73)
 	o = msgp.AppendArrayHeader(o, uint32(len(z.Samples)))
@@ -542,13 +542,13 @@ func (z *EventPackets) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "Packets":
-			z.Packets, bts, err = msgp.ReadUint32Bytes(bts)
+			z.Packets, bts, err = msgp.ReadUint64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Packets")
 				return
 			}
 		case "Bytes":
-			z.Bytes, bts, err = msgp.ReadUint32Bytes(bts)
+			z.Bytes, bts, err = msgp.ReadUint64Bytes(bts)
 			if err != nil {
 				err = msgp.WrapError(err, "Bytes")
 				return

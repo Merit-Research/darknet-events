@@ -36,8 +36,8 @@ type EventPackets struct {
 	Dests   *set.Uint32Set
 	First   time.Time
 	Latest  time.Time
-	Packets uint32
-	Bytes   uint32
+	Packets uint64
+	Bytes   uint64
 	Samples [][]byte
 }
 
@@ -51,7 +51,7 @@ func NewEventPackets() *EventPackets {
 
 // Add adds the destination IP to the packet collection object and returns the
 // index it would have been added at (they're actually added to a set).
-func (ep *EventPackets) Add(ip uint32, b uint32, t time.Time) int {
+func (ep *EventPackets) Add(ip uint32, b uint64, t time.Time) int {
 	ep.Dests.Add(ip)
 	if ep.First.IsZero() {
 		ep.First = t
