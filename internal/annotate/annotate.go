@@ -1,11 +1,10 @@
 package annotate
 
 import (
+	"compress/gzip"
 	"darknet-events/internal/analysis"
 	"darknet-events/internal/seqjson"
 	"darknet-events/internal/set"
-
-	"compress/gzip"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/csv"
@@ -27,8 +26,9 @@ import (
 )
 
 // TODO: These  globals were copied from count.go - they should have a
-// permanent home in an internal package where they can be accessed everywhere.
+// 	permanent home in an internal package where they can be accessed everywhere.
 
+// TODO: Add DarknetSize and DarknetFactor for IPv6
 // DarknetSize is the number of IP addresses in the darknet.
 var DarknetSize uint32 = 475136
 
@@ -173,6 +173,7 @@ func NewAnnotator(resultsOutPath string, mmASNInPath string,
 	}
 	a.dnsChannel = make(chan ipOutput)
 	for i := 0; i < 1000; i++ {
+		// TODO: Ask Why 1000?
 		a.dnsWG.Add(1)
 		go a.dnsQuerier()
 	}
@@ -183,6 +184,7 @@ func NewAnnotator(resultsOutPath string, mmASNInPath string,
 	a.EventChannel = make(chan *analysis.Event)
 
 	a.wg.Add(1)
+	// start a goroutine (running concurrently with other functions)
 	go a.Reader()
 
 	// Make temporary stats maps.
@@ -228,7 +230,6 @@ func (a *Annotator) Close() {
 	log.Printf("At threshold %d, packet coverage was %f%%, "+
 		"event coverage was %f%%.\n", a.minUniques, currPacketCoverage,
 		currEventCoverage)
-
 	// TODO: Perhaps make this a flag for output?
 	/*
 		for i := a.minUniques - 1; i > 0; i-- {
@@ -243,6 +244,11 @@ func (a *Annotator) Close() {
 	*/
 }
 
+type Unique24s struct {
+	Unique24sIPv4 set.Uint32Set
+	Unique24sIPv6 set.IPSet
+}
+
 // Reader sits in a loop taking in events and annotates them with useful
 // information such as the event type, AS data, etc.
 //
@@ -253,45 +259,63 @@ func (a *Annotator) Reader() {
 		es := e.Signature
 		ep := e.Packets
 
-		// Create sets to count the number of unique dests and /24 dests.
-		unique24s := set.NewUint32Set()
-		for k := range *ep.Dests.Map() {
-			unique24s.Add(k & 0xffffff00)
-		}
-
-		// Ignore if the number of unique destinations is too low.
-		if ep.Dests.Size() < a.minUniques {
-			a.packetsIgnored += ep.Packets
-			a.eventsIgnored++
-
-			// Update temporary stats.
-			for i := ep.Dests.Size(); i > 0; i-- {
-				a.packetStats[i] += ep.Packets
-				a.eventStats[i]++
+		var sourceIP net.IP
+		var uniqueDestsSize int
+		var unique24sSize int
+		if ep.IsIPv4 {
+			// Dealing with IPv4 addresses
+			// Create sets to count the number of unique dests and /24 dests.
+			unique24s := set.NewUint32Set()
+			for k := range *ep.DestIPv4.Map() {
+				// Collect all IPs under /24
+				unique24s.Add(k & 0xffffff00)
 			}
 
-			continue
-		}
+			// Ignore if the number of unique destinations is too low.
+			if ep.DestIPv4.Size() < a.minUniques {
+				a.packetsIgnored += ep.Packets
+				a.eventsIgnored++
 
-		// Ignore if the packet rate is too low.
-		scanDuration := ep.Latest.Sub(ep.First).Seconds()
-		scanRate := float64(ep.Packets) * DarknetFactor / scanDuration
-		if scanRate < a.minScanRate {
-			a.packetsIgnored += ep.Packets
-			a.eventsIgnored++
+				// Update temporary stats.
+				for i := ep.DestIPv4.Size(); i > 0; i-- {
+					a.packetStats[i] += ep.Packets
+					a.eventStats[i]++
+				}
 
-			// Update temporary stats.
-			for i := ep.Dests.Size(); i > 0; i-- {
-				a.packetStats[i] += ep.Packets
-				a.eventStats[i]++
+				continue
 			}
 
-			continue
-		}
+			// Ignore if the packet rate is too low.
+			scanDuration := ep.Latest.Sub(ep.First).Seconds()
+			scanRate := float64(ep.Packets) * DarknetFactor / scanDuration
+			if scanRate < a.minScanRate {
+				a.packetsIgnored += ep.Packets
+				a.eventsIgnored++
 
-		// Convert the source IP to a net.IP object.
-		sourceIP := make(net.IP, 4)
-		binary.BigEndian.PutUint32(sourceIP, es.SourceIP)
+				// Update temporary stats.
+				for i := ep.DestIPv4.Size(); i > 0; i-- {
+					a.packetStats[i] += ep.Packets
+					a.eventStats[i]++
+				}
+
+				continue
+			}
+
+			// Convert the source IP to a net.IP object.
+			sourceIP = make(net.IP, 4)
+			binary.BigEndian.PutUint32(sourceIP, es.SourceIPv4)
+			uniqueDestsSize = ep.DestIPv4.Size()
+			unique24sSize = unique24s.Size()
+		} else {
+			// Dealing with IPv6 addresses
+			// TODO: Do we still consider /24 subnets for IPv6?
+
+			// Convert the source IP to a net.IP object.
+			sourceIP = make(net.IP, 16)
+			copy(sourceIP, es.SourceIPv6[:])
+			uniqueDestsSize = ep.DestIPv6.Size()
+			unique24sSize = -1
+		}
 
 		// If this is a TCP packet, check if its from zmap, masscan, or mirai.
 		var zmap bool
@@ -390,8 +414,8 @@ func (a *Annotator) Reader() {
 			Last:          ep.Latest,
 			Packets:       ep.Packets,
 			Bytes:         ep.Bytes,
-			UniqueDests:   ep.Dests.Size(),
-			UniqueDest24s: unique24s.Size(),
+			UniqueDests:   uniqueDestsSize,
+			UniqueDest24s: unique24sSize,
 			Lat:           latitude,
 			Long:          longitude,
 			Country:       country,

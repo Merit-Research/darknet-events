@@ -7,3 +7,5 @@ clean:
 	rm -f ./bin/parse
 	rm -f ./bin/count
 	rm -f ./bin/timeseries
+local-build:
+	go build -o ./local/parse ./cmd/parse/parse.go

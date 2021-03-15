@@ -9,7 +9,6 @@ import (
 	"darknet-events/internal/annotate"
 	"darknet-events/internal/cache"
 	"darknet-events/internal/decode"
-
 	"flag"
 	"io"
 	"log"

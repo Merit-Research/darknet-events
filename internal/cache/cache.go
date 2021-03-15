@@ -5,6 +5,7 @@ package cache
 import (
 	"io"
 	"log"
+	"net"
 	"os"
 	"time"
 	"unsafe"
@@ -95,7 +96,7 @@ func NewCache(timeout int, inPath string, outPath string,
 // key will be expired beforehand if they have exceeded their timeout. Add may
 // also add the raw bytes of the packet as a sample.
 func (c *Cache) Add(es analysis.EventSignature,
-	ip uint32, t time.Time, raw []byte) {
+	ip net.IP, t time.Time, raw []byte) {
 
 	// If we don't have a known first packet time, this is the first packet.
 	if c.First.IsZero() {
@@ -112,7 +113,12 @@ func (c *Cache) Add(es analysis.EventSignature,
 
 	// Add the new packet data to the cache.
 	if _, ok := c.Cache[es]; !ok {
-		c.Cache[es] = analysis.NewEventPackets()
+		var isIPv4 bool
+		// check whether this is an IPv4/v6 address
+		if isIPv4 = true; ip.To4() == nil {
+			isIPv4 = false
+		}
+		c.Cache[es] = analysis.NewEventPackets(isIPv4)
 	}
 	i := c.Cache[es].Add(ip, uint64(len(raw)), t)
 
