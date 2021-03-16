@@ -333,10 +333,11 @@ func (a *Annotator) Reader() {
 				}
 
 				nl := packet.NetworkLayer()
-				if nl == nil || nl.LayerType() != layers.LayerTypeIPv4 {
-					log.Fatal("Contradiction in traffic type and IPv4 parse.")
+
+				if nl == nil || (nl.LayerType() != layers.LayerTypeIPv4 &&
+				   nl.LayerType() != layers.LayerTypeIPv6) {
+					log.Fatal("Contradiction in traffic type and IPv4/v6 parse.")
 				}
-				ip := nl.(*layers.IPv4)
 
 				tl := packet.TransportLayer()
 				if tl == nil || tl.LayerType() != layers.LayerTypeTCP {
@@ -344,19 +345,24 @@ func (a *Annotator) Reader() {
 				}
 				tcp := tl.(*layers.TCP)
 
-				dstIP := binary.BigEndian.Uint32(ip.DstIP.To4())
-				dstPort := tcp.DstPort
-				seq := tcp.Seq
-				id := ip.Id
+				if nl.LayerType() == layers.LayerTypeIPv4 {
+					ip := nl.(*layers.IPv4)
+					dstIP := binary.BigEndian.Uint32(ip.DstIP.To4())
 
-				if zmap && id != 54321 {
-					zmap = false
-				}
-				if masscan && id != uint16(dstIP^uint32(dstPort)^seq) {
-					masscan = false
-				}
-				if mirai && dstIP != seq {
-					mirai = false
+					dstPort := tcp.DstPort
+					seq := tcp.Seq
+					id := ip.Id
+
+					// TODO
+					if zmap && id != 54321 {
+						zmap = false
+					}
+					if masscan && id != uint16(dstIP^uint32(dstPort)^seq) {
+						masscan = false
+					}
+					if mirai && dstIP != seq {
+						mirai = false
+					}
 				}
 			}
 		}

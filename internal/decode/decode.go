@@ -68,7 +68,7 @@ func (d *Decoder) Decode(read []byte,
 		if d.ip4.DstIP.To4() == nil {
 			es = analysis.NewEventSignature(d.ip6.SrcIP,
 				0, analysis.UnknownTraffic)
-			ip = d.ip4.DstIP.To16()
+			ip = d.ip6.DstIP.To16()
 		} else {
 			es = analysis.NewEventSignature(d.ip4.SrcIP,
 				0, analysis.UnknownTraffic)
@@ -168,7 +168,6 @@ func (d *Decoder) Decode(read []byte,
 	var ip net.IP
 
 	if d.ip4.DstIP.To4() == nil {
-		log.Println("IPv6 address found: ", d.ip6.DstIP.String())
 		es = analysis.NewEventSignature(d.ip6.SrcIP, port, traffic)
 		ip = d.ip6.DstIP.To16()
 	} else {
