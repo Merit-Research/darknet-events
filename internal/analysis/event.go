@@ -65,19 +65,19 @@ func NewEventSignatureIPv6(sourceIP net.IP,
 	return *es
 }
 
-func (es *EventSignatureIPv4) GetPort() uint16 {
+func (es EventSignatureIPv4) GetPort() uint16 {
 	return es.Port
 }
 
-func (es *EventSignatureIPv6) GetPort() uint16 {
+func (es EventSignatureIPv6) GetPort() uint16 {
 	return es.Port
 }
 
-func (es *EventSignatureIPv4) GetTraffic() TrafficType {
+func (es EventSignatureIPv4) GetTraffic() TrafficType {
 	return es.Traffic
 }
 
-func (es *EventSignatureIPv6) GetTraffic() TrafficType {
+func (es EventSignatureIPv6) GetTraffic() TrafficType {
 	return es.Traffic
 }
 

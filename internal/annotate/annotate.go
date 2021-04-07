@@ -267,7 +267,7 @@ func (a *Annotator) Reader() {
 		switch ep.(type) {
 		case *analysis.EventPacketsIPv4:
 			epIPv4, _ := ep.(*analysis.EventPacketsIPv4)
-			esIPv4, _ := es.(*analysis.EventSignatureIPv4)
+			esIPv4, _ := es.(analysis.EventSignatureIPv4)
 			// Dealing with IPv4 addresses
 			// Create sets to count the number of unique dests and /24 dests.
 			unique24s := set.NewUint32Set()
@@ -314,7 +314,7 @@ func (a *Annotator) Reader() {
 
 		case *analysis.EventPacketsIPv6:
 			epIPv6, _ := ep.(*analysis.EventPacketsIPv6)
-			esIPv6, _ := es.(*analysis.EventSignatureIPv6)
+			esIPv6, _ := es.(analysis.EventSignatureIPv6)
 			// Dealing with IPv6 addresses
 			// TODO: Do we still consider /24 subnets for IPv6?
 

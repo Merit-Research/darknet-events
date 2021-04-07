@@ -697,7 +697,7 @@ func (z *EventPacketsIPv6) Msgsize() (s int) {
 }
 
 // DecodeMsg implements msgp.Decodable
-func (z *EventSignatureIPv4) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z EventSignatureIPv4) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
 	var zjfb uint32
@@ -738,7 +738,7 @@ func (z *EventSignatureIPv4) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *EventSignatureIPv4) EncodeMsg(en *msgp.Writer) (err error) {
+func (z EventSignatureIPv4) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 3
 	// write "SourceIPv4"
 	err = en.Append(0x83, 0xaa, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x50, 0x76, 0x34)
@@ -771,7 +771,7 @@ func (z *EventSignatureIPv4) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *EventSignatureIPv4) MarshalMsg(b []byte) (o []byte, err error) {
+func (z EventSignatureIPv4) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 3
 	// string "SourceIPv4"
@@ -790,7 +790,7 @@ func (z *EventSignatureIPv4) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *EventSignatureIPv4) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z EventSignatureIPv4) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
 	var zcxo uint32
@@ -832,13 +832,13 @@ func (z *EventSignatureIPv4) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *EventSignatureIPv4) Msgsize() (s int) {
+func (z EventSignatureIPv4) Msgsize() (s int) {
 	s = 1 + 11 + msgp.Uint32Size + 5 + msgp.Uint16Size + 8 + z.Traffic.Msgsize()
 	return
 }
 
 // DecodeMsg implements msgp.Decodable
-func (z *EventSignatureIPv6) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z EventSignatureIPv6) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
 	var zrsw uint32
@@ -879,7 +879,7 @@ func (z *EventSignatureIPv6) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *EventSignatureIPv6) EncodeMsg(en *msgp.Writer) (err error) {
+func (z EventSignatureIPv6) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 3
 	// write "SourceIPv6"
 	err = en.Append(0x83, 0xaa, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x50, 0x76, 0x36)
@@ -912,7 +912,7 @@ func (z *EventSignatureIPv6) EncodeMsg(en *msgp.Writer) (err error) {
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *EventSignatureIPv6) MarshalMsg(b []byte) (o []byte, err error) {
+func (z EventSignatureIPv6) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 3
 	// string "SourceIPv6"
@@ -931,7 +931,7 @@ func (z *EventSignatureIPv6) MarshalMsg(b []byte) (o []byte, err error) {
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *EventSignatureIPv6) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z EventSignatureIPv6) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
 	var zxpk uint32
@@ -973,7 +973,7 @@ func (z *EventSignatureIPv6) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *EventSignatureIPv6) Msgsize() (s int) {
+func (z EventSignatureIPv6) Msgsize() (s int) {
 	s = 1 + 11 + msgp.ArrayHeaderSize + (16 * (msgp.ByteSize)) + 5 + msgp.Uint16Size + 8 + z.Traffic.Msgsize()
 	return
 }
