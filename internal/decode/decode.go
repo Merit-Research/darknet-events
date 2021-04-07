@@ -45,7 +45,7 @@ func NewDecoder() *Decoder {
 // Decode runs gopacket's DecodingLayerParser on a packet and parses the
 // derived information into event data, packet data, and a timestamp.
 func (d *Decoder) Decode(read []byte,
-	meta gopacket.CaptureInfo) (*analysis.EventSignature, net.IP, time.Time) {
+	meta gopacket.CaptureInfo) (analysis.EventSignature, net.IP, time.Time) {
 
 	err := d.parser.DecodeLayers(read, &d.types)
 
@@ -62,17 +62,17 @@ func (d *Decoder) Decode(read []byte,
 
 	// TODO: Hack to get around the ETHERNET, IPV4, [NOTHING] case.
 	if isErr || len(d.types) < 3 {
-		var es *analysis.EventSignature
+		var es analysis.EventSignature
 		var ip net.IP
 
-		if d.ip4.DstIP.To4() == nil {
-			es = analysis.NewEventSignature(d.ip6.SrcIP,
-				0, analysis.UnknownTraffic)
-			ip = d.ip6.DstIP.To16()
-		} else {
-			es = analysis.NewEventSignature(d.ip4.SrcIP,
+		if d.ip4.DstIP.To4() != nil {
+			es = analysis.NewEventSignatureIPv4(d.ip4.SrcIP,
 				0, analysis.UnknownTraffic)
 			ip = d.ip4.DstIP.To4()
+		} else {
+			es = analysis.NewEventSignatureIPv6(d.ip6.SrcIP,
+				0, analysis.UnknownTraffic)
+			ip = d.ip4.DstIP.To16()
 		}
 		t := meta.Timestamp
 
@@ -164,15 +164,15 @@ func (d *Decoder) Decode(read []byte,
 		log.Println("Unknown transport layer:", d.types[2].String())
 	}
 
-	var es *analysis.EventSignature
+	var es analysis.EventSignature
 	var ip net.IP
 
-	if d.ip4.DstIP.To4() == nil {
-		es = analysis.NewEventSignature(d.ip6.SrcIP, port, traffic)
-		ip = d.ip6.DstIP.To16()
-	} else {
-		es = analysis.NewEventSignature(d.ip4.SrcIP, port, traffic)
+	if d.ip4.DstIP.To4() != nil {
+		es = analysis.NewEventSignatureIPv4(d.ip4.SrcIP, port, traffic)
 		ip = d.ip4.DstIP.To4()
+	} else {
+		es = analysis.NewEventSignatureIPv6(d.ip6.SrcIP, port, traffic)
+		ip = d.ip6.DstIP.To16()
 	}
 	t := meta.Timestamp
 

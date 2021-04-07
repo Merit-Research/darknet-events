@@ -32,20 +32,9 @@ func (z *Event) DecodeMsg(dc *msgp.Reader) (err error) {
 				return
 			}
 		case "Packets":
-			if dc.IsNil() {
-				err = dc.ReadNil()
-				if err != nil {
-					return
-				}
-				z.Packets = nil
-			} else {
-				if z.Packets == nil {
-					z.Packets = new(EventPackets)
-				}
-				err = z.Packets.DecodeMsg(dc)
-				if err != nil {
-					return
-				}
+			err = z.Packets.DecodeMsg(dc)
+			if err != nil {
+				return
 			}
 		default:
 			err = dc.Skip()
@@ -74,16 +63,9 @@ func (z *Event) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return err
 	}
-	if z.Packets == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.Packets.EncodeMsg(en)
-		if err != nil {
-			return
-		}
+	err = z.Packets.EncodeMsg(en)
+	if err != nil {
+		return
 	}
 	return
 }
@@ -100,13 +82,9 @@ func (z *Event) MarshalMsg(b []byte) (o []byte, err error) {
 	}
 	// string "Packets"
 	o = append(o, 0xa7, 0x50, 0x61, 0x63, 0x6b, 0x65, 0x74, 0x73)
-	if z.Packets == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.Packets.MarshalMsg(o)
-		if err != nil {
-			return
-		}
+	o, err = z.Packets.MarshalMsg(o)
+	if err != nil {
+		return
 	}
 	return
 }
@@ -133,20 +111,9 @@ func (z *Event) UnmarshalMsg(bts []byte) (o []byte, err error) {
 				return
 			}
 		case "Packets":
-			if msgp.IsNil(bts) {
-				bts, err = msgp.ReadNilBytes(bts)
-				if err != nil {
-					return
-				}
-				z.Packets = nil
-			} else {
-				if z.Packets == nil {
-					z.Packets = new(EventPackets)
-				}
-				bts, err = z.Packets.UnmarshalMsg(bts)
-				if err != nil {
-					return
-				}
+			bts, err = z.Packets.UnmarshalMsg(bts)
+			if err != nil {
+				return
 			}
 		default:
 			bts, err = msgp.Skip(bts)
@@ -161,17 +128,12 @@ func (z *Event) UnmarshalMsg(bts []byte) (o []byte, err error) {
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
 func (z *Event) Msgsize() (s int) {
-	s = 1 + 10 + z.Signature.Msgsize() + 8
-	if z.Packets == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.Packets.Msgsize()
-	}
+	s = 1 + 10 + z.Signature.Msgsize() + 8 + z.Packets.Msgsize()
 	return
 }
 
 // DecodeMsg implements msgp.Decodable
-func (z *EventPackets) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *EventPacketsIPv4) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
 	var zcmr uint32
@@ -186,22 +148,6 @@ func (z *EventPackets) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "DestIPv6":
-			if dc.IsNil() {
-				err = dc.ReadNil()
-				if err != nil {
-					return
-				}
-				z.DestIPv6 = nil
-			} else {
-				if z.DestIPv6 == nil {
-					z.DestIPv6 = new(set.IPSet)
-				}
-				err = z.DestIPv6.DecodeMsg(dc)
-				if err != nil {
-					return
-				}
-			}
 		case "DestIPv4":
 			if dc.IsNil() {
 				err = dc.ReadNil()
@@ -255,11 +201,6 @@ func (z *EventPackets) DecodeMsg(dc *msgp.Reader) (err error) {
 					return
 				}
 			}
-		case "IsIPv4":
-			z.IsIPv4, err = dc.ReadBool()
-			if err != nil {
-				return
-			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -271,26 +212,10 @@ func (z *EventPackets) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *EventPackets) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 8
-	// write "DestIPv6"
-	err = en.Append(0x88, 0xa8, 0x44, 0x65, 0x73, 0x74, 0x49, 0x50, 0x76, 0x36)
-	if err != nil {
-		return err
-	}
-	if z.DestIPv6 == nil {
-		err = en.WriteNil()
-		if err != nil {
-			return
-		}
-	} else {
-		err = z.DestIPv6.EncodeMsg(en)
-		if err != nil {
-			return
-		}
-	}
+func (z *EventPacketsIPv4) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 6
 	// write "DestIPv4"
-	err = en.Append(0xa8, 0x44, 0x65, 0x73, 0x74, 0x49, 0x50, 0x76, 0x34)
+	err = en.Append(0x86, 0xa8, 0x44, 0x65, 0x73, 0x74, 0x49, 0x50, 0x76, 0x34)
 	if err != nil {
 		return err
 	}
@@ -356,34 +281,15 @@ func (z *EventPackets) EncodeMsg(en *msgp.Writer) (err error) {
 			return
 		}
 	}
-	// write "IsIPv4"
-	err = en.Append(0xa6, 0x49, 0x73, 0x49, 0x50, 0x76, 0x34)
-	if err != nil {
-		return err
-	}
-	err = en.WriteBool(z.IsIPv4)
-	if err != nil {
-		return
-	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *EventPackets) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *EventPacketsIPv4) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 8
-	// string "DestIPv6"
-	o = append(o, 0x88, 0xa8, 0x44, 0x65, 0x73, 0x74, 0x49, 0x50, 0x76, 0x36)
-	if z.DestIPv6 == nil {
-		o = msgp.AppendNil(o)
-	} else {
-		o, err = z.DestIPv6.MarshalMsg(o)
-		if err != nil {
-			return
-		}
-	}
+	// map header, size 6
 	// string "DestIPv4"
-	o = append(o, 0xa8, 0x44, 0x65, 0x73, 0x74, 0x49, 0x50, 0x76, 0x34)
+	o = append(o, 0x86, 0xa8, 0x44, 0x65, 0x73, 0x74, 0x49, 0x50, 0x76, 0x34)
 	if z.DestIPv4 == nil {
 		o = msgp.AppendNil(o)
 	} else {
@@ -410,14 +316,11 @@ func (z *EventPackets) MarshalMsg(b []byte) (o []byte, err error) {
 	for zbai := range z.Samples {
 		o = msgp.AppendBytes(o, z.Samples[zbai])
 	}
-	// string "IsIPv4"
-	o = append(o, 0xa6, 0x49, 0x73, 0x49, 0x50, 0x76, 0x34)
-	o = msgp.AppendBool(o, z.IsIPv4)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *EventPackets) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *EventPacketsIPv4) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
 	var zwht uint32
@@ -432,22 +335,6 @@ func (z *EventPackets) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "DestIPv6":
-			if msgp.IsNil(bts) {
-				bts, err = msgp.ReadNilBytes(bts)
-				if err != nil {
-					return
-				}
-				z.DestIPv6 = nil
-			} else {
-				if z.DestIPv6 == nil {
-					z.DestIPv6 = new(set.IPSet)
-				}
-				bts, err = z.DestIPv6.UnmarshalMsg(bts)
-				if err != nil {
-					return
-				}
-			}
 		case "DestIPv4":
 			if msgp.IsNil(bts) {
 				bts, err = msgp.ReadNilBytes(bts)
@@ -501,11 +388,6 @@ func (z *EventPackets) UnmarshalMsg(bts []byte) (o []byte, err error) {
 					return
 				}
 			}
-		case "IsIPv4":
-			z.IsIPv4, bts, err = msgp.ReadBoolBytes(bts)
-			if err != nil {
-				return
-			}
 		default:
 			bts, err = msgp.Skip(bts)
 			if err != nil {
@@ -518,14 +400,8 @@ func (z *EventPackets) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *EventPackets) Msgsize() (s int) {
+func (z *EventPacketsIPv4) Msgsize() (s int) {
 	s = 1 + 9
-	if z.DestIPv6 == nil {
-		s += msgp.NilSize
-	} else {
-		s += z.DestIPv6.Msgsize()
-	}
-	s += 9
 	if z.DestIPv4 == nil {
 		s += msgp.NilSize
 	} else {
@@ -535,12 +411,11 @@ func (z *EventPackets) Msgsize() (s int) {
 	for zbai := range z.Samples {
 		s += msgp.BytesPrefixSize + len(z.Samples[zbai])
 	}
-	s += 7 + msgp.BoolSize
 	return
 }
 
 // DecodeMsg implements msgp.Decodable
-func (z *EventSignature) DecodeMsg(dc *msgp.Reader) (err error) {
+func (z *EventPacketsIPv6) DecodeMsg(dc *msgp.Reader) (err error) {
 	var field []byte
 	_ = field
 	var zxhx uint32
@@ -555,11 +430,288 @@ func (z *EventSignature) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "SourceIPv6":
-			err = dc.ReadExactBytes((z.SourceIPv6)[:])
+		case "DestIPv6":
+			if dc.IsNil() {
+				err = dc.ReadNil()
+				if err != nil {
+					return
+				}
+				z.DestIPv6 = nil
+			} else {
+				if z.DestIPv6 == nil {
+					z.DestIPv6 = new(set.IPSet)
+				}
+				err = z.DestIPv6.DecodeMsg(dc)
+				if err != nil {
+					return
+				}
+			}
+		case "First":
+			z.First, err = dc.ReadTime()
 			if err != nil {
 				return
 			}
+		case "Latest":
+			z.Latest, err = dc.ReadTime()
+			if err != nil {
+				return
+			}
+		case "Packets":
+			z.Packets, err = dc.ReadUint64()
+			if err != nil {
+				return
+			}
+		case "Bytes":
+			z.Bytes, err = dc.ReadUint64()
+			if err != nil {
+				return
+			}
+		case "Samples":
+			var zlqf uint32
+			zlqf, err = dc.ReadArrayHeader()
+			if err != nil {
+				return
+			}
+			if cap(z.Samples) >= int(zlqf) {
+				z.Samples = (z.Samples)[:zlqf]
+			} else {
+				z.Samples = make([][]byte, zlqf)
+			}
+			for zcua := range z.Samples {
+				z.Samples[zcua], err = dc.ReadBytes(z.Samples[zcua])
+				if err != nil {
+					return
+				}
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *EventPacketsIPv6) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 6
+	// write "DestIPv6"
+	err = en.Append(0x86, 0xa8, 0x44, 0x65, 0x73, 0x74, 0x49, 0x50, 0x76, 0x36)
+	if err != nil {
+		return err
+	}
+	if z.DestIPv6 == nil {
+		err = en.WriteNil()
+		if err != nil {
+			return
+		}
+	} else {
+		err = z.DestIPv6.EncodeMsg(en)
+		if err != nil {
+			return
+		}
+	}
+	// write "First"
+	err = en.Append(0xa5, 0x46, 0x69, 0x72, 0x73, 0x74)
+	if err != nil {
+		return err
+	}
+	err = en.WriteTime(z.First)
+	if err != nil {
+		return
+	}
+	// write "Latest"
+	err = en.Append(0xa6, 0x4c, 0x61, 0x74, 0x65, 0x73, 0x74)
+	if err != nil {
+		return err
+	}
+	err = en.WriteTime(z.Latest)
+	if err != nil {
+		return
+	}
+	// write "Packets"
+	err = en.Append(0xa7, 0x50, 0x61, 0x63, 0x6b, 0x65, 0x74, 0x73)
+	if err != nil {
+		return err
+	}
+	err = en.WriteUint64(z.Packets)
+	if err != nil {
+		return
+	}
+	// write "Bytes"
+	err = en.Append(0xa5, 0x42, 0x79, 0x74, 0x65, 0x73)
+	if err != nil {
+		return err
+	}
+	err = en.WriteUint64(z.Bytes)
+	if err != nil {
+		return
+	}
+	// write "Samples"
+	err = en.Append(0xa7, 0x53, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x73)
+	if err != nil {
+		return err
+	}
+	err = en.WriteArrayHeader(uint32(len(z.Samples)))
+	if err != nil {
+		return
+	}
+	for zcua := range z.Samples {
+		err = en.WriteBytes(z.Samples[zcua])
+		if err != nil {
+			return
+		}
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *EventPacketsIPv6) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 6
+	// string "DestIPv6"
+	o = append(o, 0x86, 0xa8, 0x44, 0x65, 0x73, 0x74, 0x49, 0x50, 0x76, 0x36)
+	if z.DestIPv6 == nil {
+		o = msgp.AppendNil(o)
+	} else {
+		o, err = z.DestIPv6.MarshalMsg(o)
+		if err != nil {
+			return
+		}
+	}
+	// string "First"
+	o = append(o, 0xa5, 0x46, 0x69, 0x72, 0x73, 0x74)
+	o = msgp.AppendTime(o, z.First)
+	// string "Latest"
+	o = append(o, 0xa6, 0x4c, 0x61, 0x74, 0x65, 0x73, 0x74)
+	o = msgp.AppendTime(o, z.Latest)
+	// string "Packets"
+	o = append(o, 0xa7, 0x50, 0x61, 0x63, 0x6b, 0x65, 0x74, 0x73)
+	o = msgp.AppendUint64(o, z.Packets)
+	// string "Bytes"
+	o = append(o, 0xa5, 0x42, 0x79, 0x74, 0x65, 0x73)
+	o = msgp.AppendUint64(o, z.Bytes)
+	// string "Samples"
+	o = append(o, 0xa7, 0x53, 0x61, 0x6d, 0x70, 0x6c, 0x65, 0x73)
+	o = msgp.AppendArrayHeader(o, uint32(len(z.Samples)))
+	for zcua := range z.Samples {
+		o = msgp.AppendBytes(o, z.Samples[zcua])
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *EventPacketsIPv6) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zdaf uint32
+	zdaf, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	for zdaf > 0 {
+		zdaf--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "DestIPv6":
+			if msgp.IsNil(bts) {
+				bts, err = msgp.ReadNilBytes(bts)
+				if err != nil {
+					return
+				}
+				z.DestIPv6 = nil
+			} else {
+				if z.DestIPv6 == nil {
+					z.DestIPv6 = new(set.IPSet)
+				}
+				bts, err = z.DestIPv6.UnmarshalMsg(bts)
+				if err != nil {
+					return
+				}
+			}
+		case "First":
+			z.First, bts, err = msgp.ReadTimeBytes(bts)
+			if err != nil {
+				return
+			}
+		case "Latest":
+			z.Latest, bts, err = msgp.ReadTimeBytes(bts)
+			if err != nil {
+				return
+			}
+		case "Packets":
+			z.Packets, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				return
+			}
+		case "Bytes":
+			z.Bytes, bts, err = msgp.ReadUint64Bytes(bts)
+			if err != nil {
+				return
+			}
+		case "Samples":
+			var zpks uint32
+			zpks, bts, err = msgp.ReadArrayHeaderBytes(bts)
+			if err != nil {
+				return
+			}
+			if cap(z.Samples) >= int(zpks) {
+				z.Samples = (z.Samples)[:zpks]
+			} else {
+				z.Samples = make([][]byte, zpks)
+			}
+			for zcua := range z.Samples {
+				z.Samples[zcua], bts, err = msgp.ReadBytesBytes(bts, z.Samples[zcua])
+				if err != nil {
+					return
+				}
+			}
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *EventPacketsIPv6) Msgsize() (s int) {
+	s = 1 + 9
+	if z.DestIPv6 == nil {
+		s += msgp.NilSize
+	} else {
+		s += z.DestIPv6.Msgsize()
+	}
+	s += 6 + msgp.TimeSize + 7 + msgp.TimeSize + 8 + msgp.Uint64Size + 6 + msgp.Uint64Size + 8 + msgp.ArrayHeaderSize
+	for zcua := range z.Samples {
+		s += msgp.BytesPrefixSize + len(z.Samples[zcua])
+	}
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *EventSignatureIPv4) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zjfb uint32
+	zjfb, err = dc.ReadMapHeader()
+	if err != nil {
+		return
+	}
+	for zjfb > 0 {
+		zjfb--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
 		case "SourceIPv4":
 			z.SourceIPv4, err = dc.ReadUint32()
 			if err != nil {
@@ -575,11 +727,6 @@ func (z *EventSignature) DecodeMsg(dc *msgp.Reader) (err error) {
 			if err != nil {
 				return
 			}
-		case "IsIPv4":
-			z.IsIPv4, err = dc.ReadBool()
-			if err != nil {
-				return
-			}
 		default:
 			err = dc.Skip()
 			if err != nil {
@@ -591,19 +738,10 @@ func (z *EventSignature) DecodeMsg(dc *msgp.Reader) (err error) {
 }
 
 // EncodeMsg implements msgp.Encodable
-func (z *EventSignature) EncodeMsg(en *msgp.Writer) (err error) {
-	// map header, size 5
-	// write "SourceIPv6"
-	err = en.Append(0x85, 0xaa, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x50, 0x76, 0x36)
-	if err != nil {
-		return err
-	}
-	err = en.WriteBytes((z.SourceIPv6)[:])
-	if err != nil {
-		return
-	}
+func (z *EventSignatureIPv4) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 3
 	// write "SourceIPv4"
-	err = en.Append(0xaa, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x50, 0x76, 0x34)
+	err = en.Append(0x83, 0xaa, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x50, 0x76, 0x34)
 	if err != nil {
 		return err
 	}
@@ -629,27 +767,15 @@ func (z *EventSignature) EncodeMsg(en *msgp.Writer) (err error) {
 	if err != nil {
 		return
 	}
-	// write "IsIPv4"
-	err = en.Append(0xa6, 0x49, 0x73, 0x49, 0x50, 0x76, 0x34)
-	if err != nil {
-		return err
-	}
-	err = en.WriteBool(z.IsIPv4)
-	if err != nil {
-		return
-	}
 	return
 }
 
 // MarshalMsg implements msgp.Marshaler
-func (z *EventSignature) MarshalMsg(b []byte) (o []byte, err error) {
+func (z *EventSignatureIPv4) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
-	// map header, size 5
-	// string "SourceIPv6"
-	o = append(o, 0x85, 0xaa, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x50, 0x76, 0x36)
-	o = msgp.AppendBytes(o, (z.SourceIPv6)[:])
+	// map header, size 3
 	// string "SourceIPv4"
-	o = append(o, 0xaa, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x50, 0x76, 0x34)
+	o = append(o, 0x83, 0xaa, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x50, 0x76, 0x34)
 	o = msgp.AppendUint32(o, z.SourceIPv4)
 	// string "Port"
 	o = append(o, 0xa4, 0x50, 0x6f, 0x72, 0x74)
@@ -660,33 +786,25 @@ func (z *EventSignature) MarshalMsg(b []byte) (o []byte, err error) {
 	if err != nil {
 		return
 	}
-	// string "IsIPv4"
-	o = append(o, 0xa6, 0x49, 0x73, 0x49, 0x50, 0x76, 0x34)
-	o = msgp.AppendBool(o, z.IsIPv4)
 	return
 }
 
 // UnmarshalMsg implements msgp.Unmarshaler
-func (z *EventSignature) UnmarshalMsg(bts []byte) (o []byte, err error) {
+func (z *EventSignatureIPv4) UnmarshalMsg(bts []byte) (o []byte, err error) {
 	var field []byte
 	_ = field
-	var zlqf uint32
-	zlqf, bts, err = msgp.ReadMapHeaderBytes(bts)
+	var zcxo uint32
+	zcxo, bts, err = msgp.ReadMapHeaderBytes(bts)
 	if err != nil {
 		return
 	}
-	for zlqf > 0 {
-		zlqf--
+	for zcxo > 0 {
+		zcxo--
 		field, bts, err = msgp.ReadMapKeyZC(bts)
 		if err != nil {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "SourceIPv6":
-			bts, err = msgp.ReadExactBytes(bts, (z.SourceIPv6)[:])
-			if err != nil {
-				return
-			}
 		case "SourceIPv4":
 			z.SourceIPv4, bts, err = msgp.ReadUint32Bytes(bts)
 			if err != nil {
@@ -702,8 +820,144 @@ func (z *EventSignature) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			if err != nil {
 				return
 			}
-		case "IsIPv4":
-			z.IsIPv4, bts, err = msgp.ReadBoolBytes(bts)
+		default:
+			bts, err = msgp.Skip(bts)
+			if err != nil {
+				return
+			}
+		}
+	}
+	o = bts
+	return
+}
+
+// Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
+func (z *EventSignatureIPv4) Msgsize() (s int) {
+	s = 1 + 11 + msgp.Uint32Size + 5 + msgp.Uint16Size + 8 + z.Traffic.Msgsize()
+	return
+}
+
+// DecodeMsg implements msgp.Decodable
+func (z *EventSignatureIPv6) DecodeMsg(dc *msgp.Reader) (err error) {
+	var field []byte
+	_ = field
+	var zrsw uint32
+	zrsw, err = dc.ReadMapHeader()
+	if err != nil {
+		return
+	}
+	for zrsw > 0 {
+		zrsw--
+		field, err = dc.ReadMapKeyPtr()
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "SourceIPv6":
+			err = dc.ReadExactBytes((z.SourceIPv6)[:])
+			if err != nil {
+				return
+			}
+		case "Port":
+			z.Port, err = dc.ReadUint16()
+			if err != nil {
+				return
+			}
+		case "Traffic":
+			err = z.Traffic.DecodeMsg(dc)
+			if err != nil {
+				return
+			}
+		default:
+			err = dc.Skip()
+			if err != nil {
+				return
+			}
+		}
+	}
+	return
+}
+
+// EncodeMsg implements msgp.Encodable
+func (z *EventSignatureIPv6) EncodeMsg(en *msgp.Writer) (err error) {
+	// map header, size 3
+	// write "SourceIPv6"
+	err = en.Append(0x83, 0xaa, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x50, 0x76, 0x36)
+	if err != nil {
+		return err
+	}
+	err = en.WriteBytes((z.SourceIPv6)[:])
+	if err != nil {
+		return
+	}
+	// write "Port"
+	err = en.Append(0xa4, 0x50, 0x6f, 0x72, 0x74)
+	if err != nil {
+		return err
+	}
+	err = en.WriteUint16(z.Port)
+	if err != nil {
+		return
+	}
+	// write "Traffic"
+	err = en.Append(0xa7, 0x54, 0x72, 0x61, 0x66, 0x66, 0x69, 0x63)
+	if err != nil {
+		return err
+	}
+	err = z.Traffic.EncodeMsg(en)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// MarshalMsg implements msgp.Marshaler
+func (z *EventSignatureIPv6) MarshalMsg(b []byte) (o []byte, err error) {
+	o = msgp.Require(b, z.Msgsize())
+	// map header, size 3
+	// string "SourceIPv6"
+	o = append(o, 0x83, 0xaa, 0x53, 0x6f, 0x75, 0x72, 0x63, 0x65, 0x49, 0x50, 0x76, 0x36)
+	o = msgp.AppendBytes(o, (z.SourceIPv6)[:])
+	// string "Port"
+	o = append(o, 0xa4, 0x50, 0x6f, 0x72, 0x74)
+	o = msgp.AppendUint16(o, z.Port)
+	// string "Traffic"
+	o = append(o, 0xa7, 0x54, 0x72, 0x61, 0x66, 0x66, 0x69, 0x63)
+	o, err = z.Traffic.MarshalMsg(o)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// UnmarshalMsg implements msgp.Unmarshaler
+func (z *EventSignatureIPv6) UnmarshalMsg(bts []byte) (o []byte, err error) {
+	var field []byte
+	_ = field
+	var zxpk uint32
+	zxpk, bts, err = msgp.ReadMapHeaderBytes(bts)
+	if err != nil {
+		return
+	}
+	for zxpk > 0 {
+		zxpk--
+		field, bts, err = msgp.ReadMapKeyZC(bts)
+		if err != nil {
+			return
+		}
+		switch msgp.UnsafeString(field) {
+		case "SourceIPv6":
+			bts, err = msgp.ReadExactBytes(bts, (z.SourceIPv6)[:])
+			if err != nil {
+				return
+			}
+		case "Port":
+			z.Port, bts, err = msgp.ReadUint16Bytes(bts)
+			if err != nil {
+				return
+			}
+		case "Traffic":
+			bts, err = z.Traffic.UnmarshalMsg(bts)
 			if err != nil {
 				return
 			}
@@ -719,7 +973,7 @@ func (z *EventSignature) UnmarshalMsg(bts []byte) (o []byte, err error) {
 }
 
 // Msgsize returns an upper bound estimate of the number of bytes occupied by the serialized message
-func (z *EventSignature) Msgsize() (s int) {
-	s = 1 + 11 + msgp.ArrayHeaderSize + (16 * (msgp.ByteSize)) + 11 + msgp.Uint32Size + 5 + msgp.Uint16Size + 8 + z.Traffic.Msgsize() + 7 + msgp.BoolSize
+func (z *EventSignatureIPv6) Msgsize() (s int) {
+	s = 1 + 11 + msgp.ArrayHeaderSize + (16 * (msgp.ByteSize)) + 5 + msgp.Uint16Size + 8 + z.Traffic.Msgsize()
 	return
 }

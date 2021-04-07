@@ -41,6 +41,7 @@ var SmallScanMargin int = int(DarknetSize) / 10
 var DarknetFactor float64 = float64(4294967296) / float64(DarknetSize)
 
 // Output is the data structure that encapsulates the output for each event.
+// Fields receiving pointers do not present when the pointers == nil
 type Output struct {
 	SourceIP      string
 	Port          uint16
@@ -51,13 +52,13 @@ type Output struct {
 	Bytes         uint64
 	UniqueDests   int
 	UniqueDest24s int
-	Lat           float64
-	Long          float64
-	Country       string
-	City          string
-	ASN           int
-	Org           string
-	Prefix        string
+	Lat           *float64  `json:",omitempty"`
+	Long          *float64  `json:",omitempty"`
+	Country       *string   `json:",omitempty"`
+	City          *string   `json:",omitempty"`
+	ASN           *int      `json:",omitempty"`
+	Org           *string   `json:",omitempty"`
+	Prefix        *string   `json:",omitempty"`
 	RDNS          []string
 	Zmap          bool
 	Masscan       bool
@@ -259,26 +260,30 @@ func (a *Annotator) Reader() {
 		es := e.Signature
 		ep := e.Packets
 
-		var sourceIP net.IP
 		var uniqueDestsSize int
 		var unique24sSize int
-		if ep.IsIPv4 {
+		var sourceIP net.IP
+
+		switch ep.(type) {
+		case *analysis.EventPacketsIPv4:
+			epIPv4, _ := ep.(*analysis.EventPacketsIPv4)
+			esIPv4, _ := es.(*analysis.EventSignatureIPv4)
 			// Dealing with IPv4 addresses
 			// Create sets to count the number of unique dests and /24 dests.
 			unique24s := set.NewUint32Set()
-			for k := range *ep.DestIPv4.Map() {
+			for k := range *epIPv4.DestIPv4.Map() {
 				// Collect all IPs under /24
 				unique24s.Add(k & 0xffffff00)
 			}
 
 			// Ignore if the number of unique destinations is too low.
-			if ep.DestIPv4.Size() < a.minUniques {
-				a.packetsIgnored += ep.Packets
+			if epIPv4.DestIPv4.Size() < a.minUniques {
+				a.packetsIgnored += epIPv4.Packets
 				a.eventsIgnored++
 
 				// Update temporary stats.
-				for i := ep.DestIPv4.Size(); i > 0; i-- {
-					a.packetStats[i] += ep.Packets
+				for i := epIPv4.DestIPv4.Size(); i > 0; i-- {
+					a.packetStats[i] += epIPv4.Packets
 					a.eventStats[i]++
 				}
 
@@ -286,15 +291,15 @@ func (a *Annotator) Reader() {
 			}
 
 			// Ignore if the packet rate is too low.
-			scanDuration := ep.Latest.Sub(ep.First).Seconds()
-			scanRate := float64(ep.Packets) * DarknetFactor / scanDuration
+			scanDuration := epIPv4.Latest.Sub(epIPv4.First).Seconds()
+			scanRate := float64(epIPv4.Packets) * DarknetFactor / scanDuration
 			if scanRate < a.minScanRate {
-				a.packetsIgnored += ep.Packets
+				a.packetsIgnored += epIPv4.Packets
 				a.eventsIgnored++
 
 				// Update temporary stats.
-				for i := ep.DestIPv4.Size(); i > 0; i-- {
-					a.packetStats[i] += ep.Packets
+				for i := epIPv4.DestIPv4.Size(); i > 0; i-- {
+					a.packetStats[i] += epIPv4.Packets
 					a.eventStats[i]++
 				}
 
@@ -303,30 +308,35 @@ func (a *Annotator) Reader() {
 
 			// Convert the source IP to a net.IP object.
 			sourceIP = make(net.IP, 4)
-			binary.BigEndian.PutUint32(sourceIP, es.SourceIPv4)
-			uniqueDestsSize = ep.DestIPv4.Size()
+			binary.BigEndian.PutUint32(sourceIP, esIPv4.SourceIPv4)
+			uniqueDestsSize = epIPv4.DestIPv4.Size()
 			unique24sSize = unique24s.Size()
-		} else {
+
+		case *analysis.EventPacketsIPv6:
+			epIPv6, _ := ep.(*analysis.EventPacketsIPv6)
+			esIPv6, _ := es.(*analysis.EventSignatureIPv6)
 			// Dealing with IPv6 addresses
 			// TODO: Do we still consider /24 subnets for IPv6?
 
 			// Convert the source IP to a net.IP object.
 			sourceIP = make(net.IP, 16)
-			copy(sourceIP, es.SourceIPv6[:])
-			uniqueDestsSize = ep.DestIPv6.Size()
+			copy(sourceIP, esIPv6.SourceIPv6[:])
+			uniqueDestsSize = epIPv6.DestIPv6.Size()
 			unique24sSize = -1
-		}
+		} // switch
 
 		// If this is a TCP packet, check if its from zmap, masscan, or mirai.
 		var zmap bool
 		var masscan bool
 		var mirai bool
-		if es.Traffic == analysis.TCPSYN {
+		rawSamples := ep.GetSamples()
+
+		if es.GetTraffic() == analysis.TCPSYN {
 			zmap = true
 			masscan = true
 			mirai = true
-			for i := 0; i < len(ep.Samples); i++ {
-				packet := gopacket.NewPacket(ep.Samples[i],
+			for i := 0; i < len(rawSamples); i++ {
+				packet := gopacket.NewPacket(rawSamples[i],
 					layers.LayerTypeEthernet, gopacket.NoCopy)
 				if packet == nil {
 					log.Fatal("Could not parse packet to fingerprint.")
@@ -335,7 +345,7 @@ func (a *Annotator) Reader() {
 				nl := packet.NetworkLayer()
 
 				if nl == nil || (nl.LayerType() != layers.LayerTypeIPv4 &&
-				   nl.LayerType() != layers.LayerTypeIPv6) {
+					nl.LayerType() != layers.LayerTypeIPv6) {
 					log.Fatal("Contradiction in traffic type and IPv4/v6 parse.")
 				}
 
@@ -368,67 +378,94 @@ func (a *Annotator) Reader() {
 		}
 
 		// Get geographic data for the source IP.
-		var latitude float64
-		var longitude float64
-		var country string
-		var city string
+		var latitude *float64
+		var longitude *float64
+		var country *string
+		var city *string
 		if a.locations != nil {
 			location, err := a.locations.City(sourceIP)
 			if err != nil {
 				log.Fatalf("Couldn't check location for IP: %s.\n", err)
 			}
-			latitude = location.Location.Latitude
-			longitude = location.Location.Longitude
-			country = location.Country.IsoCode
-			city = location.City.Names["en"]
+			latitude = &location.Location.Latitude
+			longitude = &location.Location.Longitude
+			country = &location.Country.IsoCode
+			cityName := location.City.Names["en"]
+			city = &cityName
 		}
 
-		var asnNumber uint
-		var organisation string
+		var asnNumber *int
+		var organisation *string
 		if a.asns != nil {
 			asn, err := a.asns.ASN(sourceIP)
 			if err != nil {
 				log.Fatalf("Couldn't check ASN data for IP: %s\n", err)
 			}
-			asnNumber = asn.AutonomousSystemNumber
-			organisation = asn.AutonomousSystemOrganization
+			temp := int(asn.AutonomousSystemNumber)
+			asnNumber = &temp
+			organisation = &asn.AutonomousSystemOrganization
 		}
 
 		// Get prefix data.
-		var routedPrefix string
+		var routedPrefix *string
 		if a.prefixes != nil {
 			val, ok, err := a.prefixes.Get(sourceIP)
 			if err != nil {
 				log.Fatalf("Couldn't look up IP prefix: %s.\n", err)
 			}
 			if err == nil && ok {
-				routedPrefix = val.(string)
+				temp := val.(string)
+				routedPrefix = &temp
 			}
 		}
 
 		// Convert the saved samples to a string.
-		samples := make([]string, len(ep.Samples))
-		for i := 0; i < len(ep.Samples); i++ {
-			samples[i] = base64.StdEncoding.EncodeToString(ep.Samples[i])
+		samples := make([]string, len(rawSamples))
+		for i := 0; i < len(rawSamples); i++ {
+			samples[i] = base64.StdEncoding.EncodeToString(rawSamples[i])
+		}
+
+		traffic := es.GetTraffic()
+		numPackets := ep.GetPackets()
+
+		// not consume empty string pointers
+		// notice the difference from invalid pointers
+		if country != nil && *country == "" {
+			country = nil
+		}
+		if city != nil && *city == "" {
+			city = nil
+		}
+		if organisation != nil && *organisation == "" {
+			organisation = nil
+		}
+		if asnNumber != nil && *asnNumber == 0 {
+			asnNumber = nil
+		}
+		if latitude != nil && longitude != nil {
+			if *latitude == 0.0 && *longitude == 0.0 {
+				latitude = nil
+				longitude = nil
+			}
 		}
 
 		output := Output{
 			SourceIP:      sourceIP.String(),
-			Port:          es.Port,
-			Traffic:       uint16(es.Traffic),
-			First:         ep.First,
-			Last:          ep.Latest,
-			Packets:       ep.Packets,
-			Bytes:         ep.Bytes,
+			Port:          es.GetPort(),
+			Traffic:       uint16(traffic),
+			First:         ep.GetFirst(),
+			Last:          ep.GetLatest(),
+			Packets:       numPackets,
+			Bytes:         ep.GetBytes(),
 			UniqueDests:   uniqueDestsSize,
 			UniqueDest24s: unique24sSize,
-			Lat:           latitude,
-			Long:          longitude,
-			Country:       country,
-			City:          city,
-			ASN:           int(asnNumber),
-			Org:           organisation,
-			Prefix:        routedPrefix,
+			Lat:           latitude,		// geoip
+			Long:          longitude,	    // geoip
+			Country:       country,		    // geoip
+			City:          city,            // geoip
+			ASN:           asnNumber,       // asn
+			Org:           organisation,    // asn
+			Prefix:        routedPrefix,    // pfx2as
 			Zmap:          zmap,
 			Masscan:       masscan,
 			Mirai:         mirai,
@@ -436,17 +473,17 @@ func (a *Annotator) Reader() {
 			// RDNS is populated asynchronously.
 		}
 
-		if es.Traffic.IsTCP() == true {
-			output.TCP = es.Traffic.ToString()
-		} else if es.Traffic.IsICMP() == true {
-			output.ICMP = es.Traffic.ToString()
+		if traffic.IsTCP() == true {
+			output.TCP = traffic.ToString()
+		} else if traffic.IsICMP() == true {
+			output.ICMP = traffic.ToString()
 		}
 
 		// Spawn a goroutine to query DNS asynchronously.
 		pair := ipOutput{ip: sourceIP, output: &output}
 		a.dnsChannel <- pair
 
-		a.packetsAnnotated += ep.Packets
+		a.packetsAnnotated += numPackets
 		a.eventsAnnotated++
 	}
 

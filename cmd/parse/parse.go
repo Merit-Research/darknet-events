@@ -217,7 +217,7 @@ func main() {
 
 			// TODO: Is meta.CaptureLength == len(read)?
 			event, dest, time := d.Decode(read, meta)
-			c.Add(*event, dest, time, read)
+			c.Add(event, dest, time, read)
 		}
 
 		log.Printf("Decoded %s, cache size is %d bytes.\n", path, c.Size())

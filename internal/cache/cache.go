@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"runtime"
 	"time"
 	"unsafe"
 
@@ -23,7 +24,7 @@ import (
 // of this package.
 type Cache struct {
 	// The cache itself.
-	Cache map[analysis.EventSignature]*analysis.EventPackets `msg:"-"`
+	Cache map[analysis.EventSignature]analysis.EventPackets `msg:"-"`
 	// Last time the cache was cleared.
 	Cleared time.Time
 	// Timestamp of first entry in cache.
@@ -72,7 +73,7 @@ func NewCache(timeout int, inPath string, outPath string,
 
 		c.load(in)
 	} else {
-		c.Cache = make(map[analysis.EventSignature]*analysis.EventPackets)
+		c.Cache = make(map[analysis.EventSignature]analysis.EventPackets)
 	}
 
 	// Check that an output state file can be created if given. This only
@@ -104,7 +105,7 @@ func (c *Cache) Add(es analysis.EventSignature,
 	}
 
 	// If it is time to clear expired entries, stop the world and do so. If
-	// stw doesn't neet to run but the key exists and is expired, expire it.
+	// stw doesn't need to run but the key exists and is expired, expire it.
 	if c.Now.Sub(c.Cleared) > c.timeout {
 		c.stw()
 	} else if _, ok := c.Cache[es]; ok && c.check(es, t) {
@@ -113,15 +114,15 @@ func (c *Cache) Add(es analysis.EventSignature,
 
 	// Add the new packet data to the cache.
 	if _, ok := c.Cache[es]; !ok {
-		var isIPv4 bool
 		// check whether this is an IPv4/v6 address
-		if isIPv4 = true; ip.To4() == nil {
-			isIPv4 = false
+		if ip.To4() != nil {
+			c.Cache[es] = analysis.NewEventPacketsIPv4()
+		} else {
+			c.Cache[es] = analysis.NewEventPacketsIPv6()
 		}
-		c.Cache[es] = analysis.NewEventPackets(isIPv4)
 	}
-	i := c.Cache[es].Add(ip, uint64(len(raw)), t)
 
+	i := c.Cache[es].Add(ip, uint64(len(raw)), t)
 	// If this packet should be sampled, do so.
 	// NOTE: We only sample once there have been enough packets to possibly
 	// meet the MinUniques threshold.
@@ -144,7 +145,13 @@ func (c *Cache) Size() uintptr {
 	var size uintptr
 	for k, v := range c.Cache {
 		size += unsafe.Sizeof(k)
-		size += v.Size()
+		ep, ok := v.(analysis.EventPackets)
+		if ok {
+			size += ep.Size()
+		} else {
+			assertionError := runtime.TypeAssertionError{}
+			log.Print(assertionError)
+		}
 	}
 	return size
 }
@@ -191,7 +198,8 @@ func (c *Cache) Close() {
 // check checks if the cache entry at the given key k is expired by the time t
 // and returns true if so.
 func (c *Cache) check(es analysis.EventSignature, t time.Time) bool {
-	return t.Sub(c.Cache[es].Latest) > c.timeout
+
+	return t.Sub(c.Cache[es].GetLatest()) > c.timeout
 }
 
 // expire removes the entry at a given key k. The key and entry will be passed
@@ -244,7 +252,7 @@ func (c *Cache) load(in io.Reader) {
 			loadEnd.Sub(loadStart).String())
 	}()
 
-	c.Cache = make(map[analysis.EventSignature]*analysis.EventPackets)
+	c.Cache = make(map[analysis.EventSignature]analysis.EventPackets)
 
 	r := msgp.NewReader(in)
 	var err error
@@ -254,17 +262,18 @@ func (c *Cache) load(in io.Reader) {
 	}
 	i := 0
 	for err == nil {
-		k := analysis.EventSignature{}
+		// TODO: Need to review
+		k := analysis.EventSignatureIPv6{}
 		err = k.DecodeMsg(r)
 		if err != nil {
 			break
 		}
-		v := analysis.EventPackets{}
+		v := analysis.EventPacketsIPv6{}
 		err = v.DecodeMsg(r)
 		if err != nil {
 			break
 		}
-		c.Cache[k] = &v
+		c.Cache[&k] = &v
 		i++
 	}
 	if err != nil && msgp.Cause(err) != io.EOF {
