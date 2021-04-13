@@ -205,7 +205,22 @@ func (c *Cache) check(es analysis.EventSignature, t time.Time) bool {
 // expire removes the entry at a given key k. The key and entry will be passed
 // off to the cache's out channel for further processing.
 func (c *Cache) expire(es analysis.EventSignature) {
-	event := analysis.NewEvent(es, c.Cache[es])
+	var s analysis.EventSource
+	switch es.(type) {
+	case analysis.EventSignatureIPv4:
+		tmp := es.(analysis.EventSignatureIPv4)
+		s = &analysis.EventSourceIPv4 {
+			SourceIPv4: tmp.SourceIPv4,
+			Port: tmp.Port,
+			Traffic: tmp.Traffic }
+	case analysis.EventSignatureIPv6:
+		tmp := es.(analysis.EventSignatureIPv6)
+		s = &analysis.EventSourceIPv6 {
+			SourceIPv6: tmp.SourceIPv6,
+			Port: tmp.Port,
+			Traffic: tmp.Traffic }
+	}
+	event := analysis.NewEvent(s, c.Cache[es])
 	c.eventChannel <- event
 	delete(c.Cache, es)
 }
@@ -229,7 +244,22 @@ func (c *Cache) stw() {
 func (c *Cache) annotateOngoing() {
 	log.Printf("%d ongoing to annotate.\n", len(c.Cache))
 	for es := range c.Cache {
-		event := analysis.NewEvent(es, c.Cache[es])
+		var s analysis.EventSource
+		switch es.(type) {
+		case analysis.EventSignatureIPv4:
+			tmp := es.(analysis.EventSignatureIPv4)
+			s = &analysis.EventSourceIPv4 {
+				SourceIPv4: tmp.SourceIPv4,
+				Port: tmp.Port,
+				Traffic: tmp.Traffic }
+		case analysis.EventSignatureIPv6:
+			tmp := es.(analysis.EventSignatureIPv6)
+			s = &analysis.EventSourceIPv6 {
+				SourceIPv6: tmp.SourceIPv6,
+				Port: tmp.Port,
+				Traffic: tmp.Traffic }
+		}
+		event := analysis.NewEvent(s, c.Cache[es])
 		c.ongoingEventChannel <- event
 	}
 }
@@ -261,19 +291,39 @@ func (c *Cache) load(in io.Reader) {
 		log.Fatal("Failed to decode cache metadata")
 	}
 	i := 0
+
 	for err == nil {
 		// TODO: Need to review
-		k := analysis.EventSignatureIPv6{}
-		err = k.DecodeMsg(r)
-		if err != nil {
+		var err1 error
+		var err2 error
+		kIPv4 := analysis.EventSourceIPv4{}
+		kIPv6 := analysis.EventSourceIPv6{}
+		err1 = kIPv4.DecodeMsg(r)
+		err2 = kIPv6.DecodeMsg(r)
+		if err1 != nil || err2 != nil {
 			break
 		}
-		v := analysis.EventPacketsIPv6{}
-		err = v.DecodeMsg(r)
-		if err != nil {
+		vIPv4 := analysis.EventPacketsIPv4{}
+		vIPv6 := analysis.EventPacketsIPv6{}
+		err1 = vIPv4.DecodeMsg(r)
+		err2 = vIPv6.DecodeMsg(r)
+		if err1 != nil || err2 != nil {
 			break
 		}
-		c.Cache[&k] = &v
+
+		if err1 == nil {
+			sIPv4 := analysis.EventSignatureIPv4 {
+				SourceIPv4: kIPv4.SourceIPv4,
+				Port: kIPv4.Port,
+				Traffic: kIPv4.Traffic }
+			c.Cache[&sIPv4] = &vIPv4
+		} else {
+			sIPv6 := analysis.EventSignatureIPv6 {
+				SourceIPv6: kIPv6.SourceIPv6,
+				Port: kIPv6.Port,
+				Traffic: kIPv6.Traffic }
+			c.Cache[&sIPv6] = &vIPv6
+		}
 		i++
 	}
 	if err != nil && msgp.Cause(err) != io.EOF {
@@ -303,7 +353,22 @@ func (c *Cache) dump(out io.Writer) {
 		log.Fatal("Failed to encode cache metadata: ", err)
 	}
 	for k, v := range c.Cache {
-		err = k.EncodeMsg(w)
+		var s analysis.EventSource
+		switch k.(type) {
+		case analysis.EventSignatureIPv4:
+			kIPv4, _ := k.(analysis.EventSignatureIPv4)
+			s = &analysis.EventSourceIPv4 {
+				SourceIPv4: kIPv4.SourceIPv4,
+				Port: kIPv4.Port,
+				Traffic: kIPv4.Traffic }
+		case analysis.EventSignatureIPv6:
+			kIPv6, _ := k.(analysis.EventSignatureIPv6)
+			s = &analysis.EventSourceIPv6 {
+				SourceIPv6: kIPv6.SourceIPv6,
+				Port: kIPv6.Port,
+				Traffic: kIPv6.Traffic }
+		}
+		err = s.EncodeMsg(w)
 		if err != nil {
 			log.Fatal("Failed to encode cache key: ", err)
 		}

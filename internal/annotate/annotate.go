@@ -257,17 +257,25 @@ type Unique24s struct {
 func (a *Annotator) Reader() {
 	// Enter main loop over events.
 	for e := range a.EventChannel {
-		es := e.Signature
+		es := e.Source
 		ep := e.Packets
 
 		var uniqueDestsSize int
 		var unique24sSize int
 		var sourceIP net.IP
+		var traffic analysis.TrafficType
+		var port uint16
 
 		switch ep.(type) {
 		case *analysis.EventPacketsIPv4:
+			s := es.(*analysis.EventSourceIPv4)
 			epIPv4, _ := ep.(*analysis.EventPacketsIPv4)
-			esIPv4, _ := es.(analysis.EventSignatureIPv4)
+			esIPv4 := analysis.EventSignatureIPv4 {
+				SourceIPv4: s.SourceIPv4,
+				Port: s.Port,
+				Traffic: s.Traffic }
+			traffic = esIPv4.GetTraffic()
+			port = esIPv4.GetPort()
 			// Dealing with IPv4 addresses
 			// Create sets to count the number of unique dests and /24 dests.
 			unique24s := set.NewUint32Set()
@@ -313,8 +321,14 @@ func (a *Annotator) Reader() {
 			unique24sSize = unique24s.Size()
 
 		case *analysis.EventPacketsIPv6:
+			s := es.(*analysis.EventSourceIPv6)
 			epIPv6, _ := ep.(*analysis.EventPacketsIPv6)
-			esIPv6, _ := es.(analysis.EventSignatureIPv6)
+			esIPv6 := analysis.EventSignatureIPv6 {
+				SourceIPv6: s.SourceIPv6,
+				Port: s.Port,
+				Traffic: s.Traffic }
+			traffic = esIPv6.GetTraffic()
+			port = esIPv6.GetPort()
 			// Dealing with IPv6 addresses
 			// TODO: Do we still consider /24 subnets for IPv6?
 
@@ -331,7 +345,7 @@ func (a *Annotator) Reader() {
 		var mirai bool
 		rawSamples := ep.GetSamples()
 
-		if es.GetTraffic() == analysis.TCPSYN {
+		if traffic == analysis.TCPSYN {
 			zmap = true
 			masscan = true
 			mirai = true
@@ -425,7 +439,6 @@ func (a *Annotator) Reader() {
 			samples[i] = base64.StdEncoding.EncodeToString(rawSamples[i])
 		}
 
-		traffic := es.GetTraffic()
 		numPackets := ep.GetPackets()
 
 		// not consume empty string pointers
@@ -451,7 +464,7 @@ func (a *Annotator) Reader() {
 
 		output := Output{
 			SourceIP:      sourceIP.String(),
-			Port:          es.GetPort(),
+			Port:          port,
 			Traffic:       uint16(traffic),
 			First:         ep.GetFirst(),
 			Last:          ep.GetLatest(),
