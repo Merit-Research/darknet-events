@@ -245,11 +245,6 @@ func (a *Annotator) Close() {
 	*/
 }
 
-type Unique24s struct {
-	Unique24sIPv4 set.Uint32Set
-	Unique24sIPv6 set.IPSet
-}
-
 // Reader sits in a loop taking in events and annotates them with useful
 // information such as the event type, AS data, etc.
 //
@@ -257,100 +252,60 @@ type Unique24s struct {
 func (a *Annotator) Reader() {
 	// Enter main loop over events.
 	for e := range a.EventChannel {
-		es := e.Source
+		es := e.Signature
 		ep := e.Packets
 
-		var uniqueDestsSize int
-		var unique24sSize int
-		var sourceIP net.IP
-		var traffic analysis.TrafficType
-		var port uint16
+		// Create sets to count the number of unique dests and /24 dests.
+		unique24s := set.NewUint32Set()
+		for k := range *ep.Dests.Map() {
+			unique24s.Add(k & 0xffffff00)
+		}
 
-		switch ep.(type) {
-		case *analysis.EventPacketsIPv4:
-			s := es.(*analysis.EventSourceIPv4)
-			epIPv4, _ := ep.(*analysis.EventPacketsIPv4)
-			esIPv4 := analysis.EventSignatureIPv4 {
-				SourceIPv4: s.SourceIPv4,
-				Port: s.Port,
-				Traffic: s.Traffic }
-			traffic = esIPv4.GetTraffic()
-			port = esIPv4.GetPort()
-			// Dealing with IPv4 addresses
-			// Create sets to count the number of unique dests and /24 dests.
-			unique24s := set.NewUint32Set()
-			for k := range *epIPv4.DestIPv4.Map() {
-				// Collect all IPs under /24
-				unique24s.Add(k & 0xffffff00)
-			}
+		// Ignore if the number of unique destinations is too low.
+		if ep.Dests.Size() < a.minUniques {
+			a.packetsIgnored += ep.Packets
+			a.eventsIgnored++
 
-			// Ignore if the number of unique destinations is too low.
-			if epIPv4.DestIPv4.Size() < a.minUniques {
-				a.packetsIgnored += epIPv4.Packets
-				a.eventsIgnored++
-
+			// Update temporary stats.
+			for i := ep.Dests.Size(); i > 0; i-- {
+				a.packetStats[i] += ep.Packets
+				a.eventStats[i]++
 				// Update temporary stats.
-				for i := epIPv4.DestIPv4.Size(); i > 0; i-- {
-					a.packetStats[i] += epIPv4.Packets
-					a.eventStats[i]++
-				}
-
-				continue
 			}
 
-			// Ignore if the packet rate is too low.
-			scanDuration := epIPv4.Latest.Sub(epIPv4.First).Seconds()
-			scanRate := float64(epIPv4.Packets) * DarknetFactor / scanDuration
-			if scanRate < a.minScanRate {
-				a.packetsIgnored += epIPv4.Packets
-				a.eventsIgnored++
+			continue
+		}
 
-				// Update temporary stats.
-				for i := epIPv4.DestIPv4.Size(); i > 0; i-- {
-					a.packetStats[i] += epIPv4.Packets
-					a.eventStats[i]++
-				}
+		// Ignore if the packet rate is too low.
+		scanDuration := ep.Latest.Sub(ep.First).Seconds()
+		scanRate := float64(ep.Packets) * DarknetFactor / scanDuration
+		if scanRate < a.minScanRate {
+			a.packetsIgnored += ep.Packets
+			a.eventsIgnored++
 
-				continue
+			// Update temporary stats.
+			for i := ep.Dests.Size(); i > 0; i-- {
+				a.packetStats[i] += ep.Packets
+				a.eventStats[i]++
 			}
 
-			// Convert the source IP to a net.IP object.
-			sourceIP = make(net.IP, 4)
-			binary.BigEndian.PutUint32(sourceIP, esIPv4.SourceIPv4)
-			uniqueDestsSize = epIPv4.DestIPv4.Size()
-			unique24sSize = unique24s.Size()
+			continue
+		}
 
-		case *analysis.EventPacketsIPv6:
-			s := es.(*analysis.EventSourceIPv6)
-			epIPv6, _ := ep.(*analysis.EventPacketsIPv6)
-			esIPv6 := analysis.EventSignatureIPv6 {
-				SourceIPv6: s.SourceIPv6,
-				Port: s.Port,
-				Traffic: s.Traffic }
-			traffic = esIPv6.GetTraffic()
-			port = esIPv6.GetPort()
-			// Dealing with IPv6 addresses
-			// TODO: Do we still consider /24 subnets for IPv6?
-
-			// Convert the source IP to a net.IP object.
-			sourceIP = make(net.IP, 16)
-			copy(sourceIP, esIPv6.SourceIPv6[:])
-			uniqueDestsSize = epIPv6.DestIPv6.Size()
-			unique24sSize = -1
-		} // switch
+		// Convert the source IP to a net.IP object.
+		sourceIP := make(net.IP, 4)
+		binary.BigEndian.PutUint32(sourceIP, es.SourceIP)
 
 		// If this is a TCP packet, check if its from zmap, masscan, or mirai.
 		var zmap bool
 		var masscan bool
 		var mirai bool
-		rawSamples := ep.GetSamples()
-
-		if traffic == analysis.TCPSYN {
+		if es.Traffic == analysis.TCPSYN {
 			zmap = true
 			masscan = true
 			mirai = true
-			for i := 0; i < len(rawSamples); i++ {
-				packet := gopacket.NewPacket(rawSamples[i],
+			for i := 0; i < len(ep.Samples); i++ {
+				packet := gopacket.NewPacket(ep.Samples[i],
 					layers.LayerTypeEthernet, gopacket.NoCopy)
 				if packet == nil {
 					log.Fatal("Could not parse packet to fingerprint.")
@@ -434,12 +389,10 @@ func (a *Annotator) Reader() {
 		}
 
 		// Convert the saved samples to a string.
-		samples := make([]string, len(rawSamples))
-		for i := 0; i < len(rawSamples); i++ {
-			samples[i] = base64.StdEncoding.EncodeToString(rawSamples[i])
+		samples := make([]string, len(ep.Samples))
+		for i := 0; i < len(ep.Samples); i++ {
+			samples[i] = base64.StdEncoding.EncodeToString(ep.Samples[i])
 		}
-
-		numPackets := ep.GetPackets()
 
 		// not consume empty string pointers
 		// notice the difference from invalid pointers
@@ -464,14 +417,14 @@ func (a *Annotator) Reader() {
 
 		output := Output{
 			SourceIP:      sourceIP.String(),
-			Port:          port,
-			Traffic:       uint16(traffic),
-			First:         ep.GetFirst(),
-			Last:          ep.GetLatest(),
-			Packets:       numPackets,
-			Bytes:         ep.GetBytes(),
-			UniqueDests:   uniqueDestsSize,
-			UniqueDest24s: unique24sSize,
+			Port:          es.Port,
+			Traffic:       uint16(es.Traffic),
+			First:         ep.First,
+			Last:          ep.Latest,
+			Packets:       ep.Packets,
+			Bytes:         ep.Bytes,
+			UniqueDests:   ep.Dests.Size(),
+			UniqueDest24s: unique24s.Size(),
 			Lat:           latitude,		// geoip
 			Long:          longitude,	    // geoip
 			Country:       country,		    // geoip
@@ -486,17 +439,17 @@ func (a *Annotator) Reader() {
 			// RDNS is populated asynchronously.
 		}
 
-		if traffic.IsTCP() == true {
-			output.TCP = traffic.ToString()
-		} else if traffic.IsICMP() == true {
-			output.ICMP = traffic.ToString()
+		if es.Traffic.IsTCP() == true {
+			output.TCP = es.Traffic.ToString()
+		} else if es.Traffic.IsICMP() == true {
+			output.ICMP = es.Traffic.ToString()
 		}
 
 		// Spawn a goroutine to query DNS asynchronously.
 		pair := ipOutput{ip: sourceIP, output: &output}
 		a.dnsChannel <- pair
 
-		a.packetsAnnotated += numPackets
+		a.packetsAnnotated += ep.Packets
 		a.eventsAnnotated++
 	}
 
