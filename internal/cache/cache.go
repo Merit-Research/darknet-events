@@ -292,41 +292,37 @@ func (c *Cache) load(in io.Reader) {
 	}
 	i := 0
 
-	for err == nil {
-		// TODO: Need to review
-		var err1 error
-		var err2 error
-		kIPv4 := analysis.EventSourceIPv4{}
-		kIPv6 := analysis.EventSourceIPv6{}
-		err1 = kIPv4.DecodeMsg(r)
-		err2 = kIPv6.DecodeMsg(r)
-		if err1 != nil || err2 != nil {
-			break
-		}
-		vIPv4 := analysis.EventPacketsIPv4{}
-		vIPv6 := analysis.EventPacketsIPv6{}
-		err1 = vIPv4.DecodeMsg(r)
-		err2 = vIPv6.DecodeMsg(r)
-		if err1 != nil || err2 != nil {
-			break
-		}
+	var err1 error
+	var err2 error
+	kIPv4 := analysis.EventSourceIPv4{}
+	vIPv4 := analysis.EventPacketsIPv4{}
 
-		if err1 == nil {
-			sIPv4 := analysis.EventSignatureIPv4 {
-				SourceIPv4: kIPv4.SourceIPv4,
-				Port: kIPv4.Port,
-				Traffic: kIPv4.Traffic }
-			c.Cache[&sIPv4] = &vIPv4
-		} else {
-			sIPv6 := analysis.EventSignatureIPv6 {
-				SourceIPv6: kIPv6.SourceIPv6,
-				Port: kIPv6.Port,
-				Traffic: kIPv6.Traffic }
-			c.Cache[&sIPv6] = &vIPv6
-		}
-		i++
+	err1 = kIPv4.DecodeMsg(r)
+	err2 = vIPv4.DecodeMsg(r)
+
+	if err1 == nil && err2 == nil {
+		sIPv4 := analysis.EventSignatureIPv4 {
+			SourceIPv4: kIPv4.SourceIPv4,
+			Port: kIPv4.Port,
+			Traffic: kIPv4.Traffic }
+		c.Cache[&sIPv4] = &vIPv4
 	}
-	if err != nil && msgp.Cause(err) != io.EOF {
+
+	kIPv6 := analysis.EventSourceIPv6{}
+	vIPv6 := analysis.EventPacketsIPv6{}
+	err1 = kIPv6.DecodeMsg(r)
+	err2 = vIPv6.DecodeMsg(r)
+
+	if err1 == nil && err2 == nil {
+		sIPv6 := analysis.EventSignatureIPv6 {
+			SourceIPv6: kIPv6.SourceIPv6,
+			Port: kIPv6.Port,
+			Traffic: kIPv6.Traffic }
+		c.Cache[&sIPv6] = &vIPv6
+	}
+	i++
+
+	if msgp.Cause(err) != io.EOF {
 		log.Printf("%T\n", msgp.Cause(err))
 		log.Fatal("Could not decode cache: ", msgp.Cause(err))
 	}
