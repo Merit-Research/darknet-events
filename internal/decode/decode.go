@@ -36,7 +36,7 @@ func NewDecoder() *Decoder {
 	d.parser = gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet,
 		&d.eth, &d.ip4, &d.ip6, &d.icmp4, &d.icmp6, &d.tcp, &d.udp, &d.pay)
 		//&d.sip, &d.dns, &d.ntp, &d.pay)
-	d.types = make([]gopacket.LayerType, 4, 4)
+	d.types = make([]gopacket.LayerType, 10, 10)
 	d.parser.IgnoreUnsupported = true
 	d.unknowns = make(map[string]uint)
 	return d
@@ -81,10 +81,45 @@ func (d *Decoder) Decode(read []byte,
 
 	var port uint16
 	var traffic analysis.TrafficType
+	var transport gopacket.LayerType
+
+	if d.types[1] == layers.LayerTypeIPv4 {
+		// for v4 packets, assume that the third element is the transport layer
+		transport = d.types[2]
+		if transport == layers.LayerTypeIPv6 {
+			// this is the case where this is a 6to4 packet
+			// these packets are effectively ignored to preserve previous
+			// functionality and may be changed in the future
+			es := analysis.NewEventSignatureIPv4(d.ip4.SrcIP,
+				0, analysis.UnknownTraffic)
+			ip := d.ip4.DstIP.To4()
+			t := meta.Timestamp
+			return es, ip, t
+		}
+	} else if d.types[1] == layers.LayerTypeIPv6 {
+		// for v6 packets, loop through to find the transport layer
+		// this is due to the fact that valid v6 packets can have any number of
+		// HOPOPT headers
+		for _, ele := range d.types {
+			switch ele {
+			case layers.LayerTypeICMPv4:
+				fallthrough
+			case layers.LayerTypeICMPv6:
+				fallthrough
+			case layers.LayerTypeTCP:
+				fallthrough
+			case layers.LayerTypeUDP:
+				transport = ele
+				break
+			default:
+				continue
+			}
+		}
+	}
 
 	// Since IP is at the third layer among the four layers (physical, link,
 	// ip, and transportation) on which we focus, we look at d.types[2]
-	switch d.types[2] {
+	switch transport {
 	case layers.LayerTypeICMPv6:
 		port = 0
 		switch d.icmp6.TypeCode.Type() {
