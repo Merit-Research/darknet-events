@@ -273,18 +273,18 @@ func main() {
 				eventSmallScanCounts[*key]++
 
 				// Add to small/large scan country breakout.
-				if packetSmallScanCountryCounts[event.Country] == nil {
-					packetSmallScanCountryCounts[event.Country] =
+				if packetSmallScanCountryCounts[*event.Country] == nil {
+					packetSmallScanCountryCounts[*event.Country] =
 						make(map[NoIPSig]uint64)
-					eventSmallScanCountryCounts[event.Country] =
+					eventSmallScanCountryCounts[*event.Country] =
 						make(map[NoIPSig]uint32)
 				}
-				packetSmallScanCountryCounts[event.Country][*key] +=
+				packetSmallScanCountryCounts[*event.Country][*key] +=
 					uint64(event.Packets)
-				eventSmallScanCountryCounts[event.Country][*key]++
-				packetSmallScanCountryTotalCounts[event.Country] +=
+				eventSmallScanCountryCounts[*event.Country][*key]++
+				packetSmallScanCountryTotalCounts[*event.Country] +=
 					uint64(event.Packets)
-				eventSmallScanCountryTotalCounts[event.Country]++
+				eventSmallScanCountryTotalCounts[*event.Country]++
 
 				// Add to Zmap/Masscan counters.
 				if event.Zmap == true {
@@ -304,18 +304,18 @@ func main() {
 				eventLargeScanCounts[*key]++
 
 				// Add to small/large scan country breakout.
-				if packetLargeScanCountryCounts[event.Country] == nil {
-					packetLargeScanCountryCounts[event.Country] =
+				if packetLargeScanCountryCounts[*event.Country] == nil {
+					packetLargeScanCountryCounts[*event.Country] =
 						make(map[NoIPSig]uint64)
-					eventLargeScanCountryCounts[event.Country] =
+					eventLargeScanCountryCounts[*event.Country] =
 						make(map[NoIPSig]uint32)
 				}
-				packetLargeScanCountryCounts[event.Country][*key] +=
+				packetLargeScanCountryCounts[*event.Country][*key] +=
 					uint64(event.Packets)
-				eventLargeScanCountryCounts[event.Country][*key]++
-				packetLargeScanCountryTotalCounts[event.Country] +=
+				eventLargeScanCountryCounts[*event.Country][*key]++
+				packetLargeScanCountryTotalCounts[*event.Country] +=
 					uint64(event.Packets)
-				eventLargeScanCountryTotalCounts[event.Country]++
+				eventLargeScanCountryTotalCounts[*event.Country]++
 
 				// Add to Zmap/Masscan counters.
 				if event.Zmap == true {
@@ -333,30 +333,30 @@ func main() {
 			}
 
 			// Add to country-by-country breakouts.
-			if packetCountryCounts[event.Country] == nil {
-				packetCountryCounts[event.Country] = make(map[NoIPSig]uint64)
-				eventCountryCounts[event.Country] = make(map[NoIPSig]uint32)
+			if packetCountryCounts[*event.Country] == nil {
+				packetCountryCounts[*event.Country] = make(map[NoIPSig]uint64)
+				eventCountryCounts[*event.Country] = make(map[NoIPSig]uint32)
 			}
-			packetCountryCounts[event.Country][*key] += uint64(event.Packets)
-			eventCountryCounts[event.Country][*key]++
-			packetCountryTotalCounts[event.Country] += uint64(event.Packets)
-			eventCountryTotalCounts[event.Country]++
+			packetCountryCounts[*event.Country][*key] += uint64(event.Packets)
+			eventCountryCounts[*event.Country][*key]++
+			packetCountryTotalCounts[*event.Country] += uint64(event.Packets)
+			eventCountryTotalCounts[*event.Country]++
 
 			// If applicable, add to Mirai breakouts.
 			if event.Mirai == true {
 				packetMiraiCounts[*key] += uint64(event.Packets)
 				eventMiraiCounts[*key]++
-				if packetMiraiCountryCounts[event.Country] == nil {
-					packetMiraiCountryCounts[event.Country] =
+				if packetMiraiCountryCounts[*event.Country] == nil {
+					packetMiraiCountryCounts[*event.Country] =
 						make(map[NoIPSig]uint64)
-					eventMiraiCountryCounts[event.Country] =
+					eventMiraiCountryCounts[*event.Country] =
 						make(map[NoIPSig]uint32)
 				}
 
 				// Add to country breakout.
-				packetMiraiCountryCounts[event.Country][*key] +=
+				packetMiraiCountryCounts[*event.Country][*key] +=
 					uint64(event.Packets)
-				eventMiraiCountryCounts[event.Country][*key]++
+				eventMiraiCountryCounts[*event.Country][*key]++
 			}
 
 			// Add to total Zmap/Masscan tallies.
