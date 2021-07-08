@@ -426,8 +426,7 @@ func (a *Annotator) Reader() {
 			val, ok, err := a.prefixes.Get(sourceIP)
 			if err != nil {
 				log.Fatalf("Couldn't look up IP prefix: %s.\n", err)
-			}
-			if err == nil && ok {
+			} else if ok {
 				temp := val.(string)
 				routedPrefix = temp
 			}
