@@ -101,8 +101,8 @@ func (d *Decoder) Decode(read []byte,
 		// this is due to the fact that valid v6 packets can have any number of
 		// HOPOPT headers
 		// len(d.types) == 10
-		for i := 2; i < 10; i++ {
-			switch d.types[i] {
+		for _, ele := range d.types {
+			switch ele {
 			case layers.LayerTypeICMPv4:
 				fallthrough
 			case layers.LayerTypeICMPv6:
@@ -110,7 +110,7 @@ func (d *Decoder) Decode(read []byte,
 			case layers.LayerTypeTCP:
 				fallthrough
 			case layers.LayerTypeUDP:
-				transport = d.types[i]
+				transport = ele
 				break
 			default:
 				continue
