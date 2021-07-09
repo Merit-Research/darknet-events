@@ -268,14 +268,10 @@ func (a *Annotator) Reader() {
 
 		switch ep.(type) {
 		case *analysis.EventPacketsIPv4:
-			s := es.(*analysis.EventSourceIPv4)
+			s := es.(*analysis.EventSignatureIPv4)
 			epIPv4, _ := ep.(*analysis.EventPacketsIPv4)
-			esIPv4 := analysis.EventSignatureIPv4 {
-				SourceIPv4: s.SourceIPv4,
-				Port: s.Port,
-				Traffic: s.Traffic }
-			traffic = esIPv4.GetTraffic()
-			port = esIPv4.GetPort()
+			traffic = s.GetTraffic()
+			port = s.GetPort()
 			// Dealing with IPv4 addresses
 			// Create sets to count the number of unique dests and /24 dests.
 			unique24s := set.NewUint32Set()
@@ -316,25 +312,21 @@ func (a *Annotator) Reader() {
 
 			// Convert the source IP to a net.IP object.
 			sourceIP = make(net.IP, 4)
-			binary.BigEndian.PutUint32(sourceIP, esIPv4.SourceIPv4)
+			binary.BigEndian.PutUint32(sourceIP, s.SourceIPv4)
 			uniqueDestsSize = epIPv4.DestIPv4.Size()
 			unique24sSize = unique24s.Size()
 
 		case *analysis.EventPacketsIPv6:
-			s := es.(*analysis.EventSourceIPv6)
+			s := es.(*analysis.EventSignatureIPv6)
 			epIPv6, _ := ep.(*analysis.EventPacketsIPv6)
-			esIPv6 := analysis.EventSignatureIPv6 {
-				SourceIPv6: s.SourceIPv6,
-				Port: s.Port,
-				Traffic: s.Traffic }
-			traffic = esIPv6.GetTraffic()
-			port = esIPv6.GetPort()
+			traffic = s.GetTraffic()
+			port = s.GetPort()
 			// Dealing with IPv6 addresses
 			// TODO: Do we still consider /24 subnets for IPv6?
 
 			// Convert the source IP to a net.IP object.
 			sourceIP = make(net.IP, 16)
-			copy(sourceIP, esIPv6.SourceIPv6[:])
+			copy(sourceIP, s.SourceIPv6[:])
 			uniqueDestsSize = epIPv6.DestIPv6.Size()
 			unique24sSize = -1
 		} // switch

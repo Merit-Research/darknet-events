@@ -209,16 +209,10 @@ func (c *Cache) expire(es analysis.EventSignature) {
 	switch es.(type) {
 	case analysis.EventSignatureIPv4:
 		tmp := es.(analysis.EventSignatureIPv4)
-		s = &analysis.EventSourceIPv4 {
-			SourceIPv4: tmp.SourceIPv4,
-			Port: tmp.Port,
-			Traffic: tmp.Traffic }
+		s = &tmp
 	case analysis.EventSignatureIPv6:
 		tmp := es.(analysis.EventSignatureIPv6)
-		s = &analysis.EventSourceIPv6 {
-			SourceIPv6: tmp.SourceIPv6,
-			Port: tmp.Port,
-			Traffic: tmp.Traffic }
+		s = &tmp
 	}
 	event := analysis.NewEvent(s, c.Cache[es])
 	c.eventChannel <- event
@@ -248,16 +242,10 @@ func (c *Cache) annotateOngoing() {
 		switch es.(type) {
 		case analysis.EventSignatureIPv4:
 			tmp := es.(analysis.EventSignatureIPv4)
-			s = &analysis.EventSourceIPv4 {
-				SourceIPv4: tmp.SourceIPv4,
-				Port: tmp.Port,
-				Traffic: tmp.Traffic }
+			s = &tmp
 		case analysis.EventSignatureIPv6:
 			tmp := es.(analysis.EventSignatureIPv6)
-			s = &analysis.EventSourceIPv6 {
-				SourceIPv6: tmp.SourceIPv6,
-				Port: tmp.Port,
-				Traffic: tmp.Traffic }
+			s = &tmp
 		}
 		event := analysis.NewEvent(s, c.Cache[es])
 		c.ongoingEventChannel <- event
@@ -304,15 +292,13 @@ func (c *Cache) load(in io.Reader) {
 			SourceIPv4: kIPv4.SourceIPv4,
 			Port: 		kIPv4.Port,
 			Traffic: 	kIPv4.Traffic }
-		vIPv4 := analysis.EventPacketsIPv4{}
-		c.Cache[&sIPv4] = &vIPv4
+		c.Cache[&sIPv4] = &analysis.EventPacketsIPv4{}
 	} else if err2 == nil {
 		sIPv6 := analysis.EventSignatureIPv6{
 			SourceIPv6: kIPv6.SourceIPv6,
 			Port:       kIPv6.Port,
 			Traffic:    kIPv6.Traffic }
-		vIPv6 := analysis.EventPacketsIPv6{}
-		c.Cache[&sIPv6] = &vIPv6
+		c.Cache[&sIPv6] = &analysis.EventPacketsIPv6{}
 	}
 		// i++
 
@@ -347,16 +333,10 @@ func (c *Cache) dump(out io.Writer) {
 		switch k.(type) {
 		case analysis.EventSignatureIPv4:
 			kIPv4, _ := k.(analysis.EventSignatureIPv4)
-			s = &analysis.EventSourceIPv4 {
-				SourceIPv4: kIPv4.SourceIPv4,
-				Port: kIPv4.Port,
-				Traffic: kIPv4.Traffic }
+			s = &kIPv4
 		case analysis.EventSignatureIPv6:
 			kIPv6, _ := k.(analysis.EventSignatureIPv6)
-			s = &analysis.EventSourceIPv6 {
-				SourceIPv6: kIPv6.SourceIPv6,
-				Port: kIPv6.Port,
-				Traffic: kIPv6.Traffic }
+			s = &kIPv6
 		}
 		err = s.EncodeMsg(w)
 		if err != nil {
