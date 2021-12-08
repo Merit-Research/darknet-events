@@ -110,7 +110,7 @@ type EventPacketsIPv4 struct {
 }
 
 type EventPacketsIPv6 struct {
-	DestIPv6 IPv6Addr `msg:"ipv6addr,extension"` // for IPv6
+	DestIPv6 IPv6AddrSet `msg:"DestIPv6,extension"` // for IPv6
 	First    time.Time
 	Latest   time.Time
 	Packets  uint64
@@ -131,7 +131,7 @@ func NewEventPacketsIPv4() *EventPacketsIPv4 {
 func NewEventPacketsIPv6() *EventPacketsIPv6 {
 	ep := new(EventPacketsIPv6)
 
-	ep.DestIPv6 = IPv6Addr{}
+	ep.DestIPv6 = IPv6AddrSet{}
 	ep.Samples = make([][]byte, 0, 1)
 
 	return ep
@@ -156,7 +156,7 @@ func (ep *EventPacketsIPv4) Add(destIP net.IP, b uint64, t time.Time) int {
 func (ep *EventPacketsIPv6) Add(destIP net.IP, b uint64, t time.Time) int {
 	var destIPv6 [16]byte
 	copy(destIPv6[:], destIP)
-	//ep.DestIPv6.Add(destIPv6)
+	ep.DestIPv6.Add(destIPv6)
 
 	if ep.First.IsZero() {
 		ep.First = t

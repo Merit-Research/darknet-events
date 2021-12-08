@@ -473,7 +473,7 @@ func (z *EventPacketsIPv6) DecodeMsg(dc *msgp.Reader) (err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "ipv6addr":
+		case "DestIPv6":
 			err = dc.ReadExtension(&z.DestIPv6)
 			if err != nil {
 				err = msgp.WrapError(err, "DestIPv6")
@@ -536,8 +536,8 @@ func (z *EventPacketsIPv6) DecodeMsg(dc *msgp.Reader) (err error) {
 // EncodeMsg implements msgp.Encodable
 func (z *EventPacketsIPv6) EncodeMsg(en *msgp.Writer) (err error) {
 	// map header, size 6
-	// write "ipv6addr"
-	err = en.Append(0x86, 0xa8, 0x69, 0x70, 0x76, 0x36, 0x61, 0x64, 0x64, 0x72)
+	// write "DestIPv6"
+	err = en.Append(0x86, 0xa8, 0x44, 0x65, 0x73, 0x74, 0x49, 0x50, 0x76, 0x36)
 	if err != nil {
 		return
 	}
@@ -610,8 +610,8 @@ func (z *EventPacketsIPv6) EncodeMsg(en *msgp.Writer) (err error) {
 func (z *EventPacketsIPv6) MarshalMsg(b []byte) (o []byte, err error) {
 	o = msgp.Require(b, z.Msgsize())
 	// map header, size 6
-	// string "ipv6addr"
-	o = append(o, 0x86, 0xa8, 0x69, 0x70, 0x76, 0x36, 0x61, 0x64, 0x64, 0x72)
+	// string "DestIPv6"
+	o = append(o, 0x86, 0xa8, 0x44, 0x65, 0x73, 0x74, 0x49, 0x50, 0x76, 0x36)
 	o, err = msgp.AppendExtension(o, &z.DestIPv6)
 	if err != nil {
 		err = msgp.WrapError(err, "DestIPv6")
@@ -656,7 +656,7 @@ func (z *EventPacketsIPv6) UnmarshalMsg(bts []byte) (o []byte, err error) {
 			return
 		}
 		switch msgp.UnsafeString(field) {
-		case "ipv6addr":
+		case "DestIPv6":
 			bts, err = msgp.ReadExtensionBytes(bts, &z.DestIPv6)
 			if err != nil {
 				err = msgp.WrapError(err, "DestIPv6")
