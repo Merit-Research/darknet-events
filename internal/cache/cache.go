@@ -260,20 +260,36 @@ func (c *Cache) load(in io.Reader) {
 			break
 		}
 
+		// Decode Dest struct
 		capbytes, err := r.ReadInt()
 		if err != nil {
 			log.Fatal("Could not decode number of bytes: ", err)
 		}
-
 		buf := make([]byte, capbytes)
 		buf, err = r.ReadBytes(buf)
 		if err != nil {
 			err = msgp.WrapError(err, "Dest bytes", buf)
 			return
 		}
-
 		v.Dests, _ = hyperloglog.NewPlus(5)
 		err = v.Dests.GobDecode(buf)
+		if err != nil {
+			log.Fatal("Could not Decode Dests", err)
+		}
+
+		// Decode Dest24 struct
+		capbytes, err = r.ReadInt()
+		if err != nil {
+			log.Fatal("Could not decode number of bytes for Dest24s: ", err)
+		}
+		buf24 := make([]byte, capbytes)
+		buf24, err = r.ReadBytes(buf24)
+		if err != nil {
+			err = msgp.WrapError(err, "Dest24s bytes", buf)
+			return
+		}
+		v.Dest24s, _ = hyperloglog.NewPlus(5)
+		err = v.Dest24s.GobDecode(buf24)
 		if err != nil {
 			log.Fatal("Could not Decode Dests", err)
 		}
@@ -317,21 +333,36 @@ func (c *Cache) dump(out io.Writer) {
 			log.Fatal("Failed to encode cache value: ", err)
 		}
 
+		// Save the Dests structure
 		bytes, err2 := v.Dests.GobEncode()
 		if err2 != nil {
 			log.Fatal("Failed to encode cache value for Dests", err)
 		}
-
 		// Save how many bytes we will encode; needed for the decoding phase
 		var capbytes int = cap(bytes)
 		err = w.WriteInt(capbytes)
 		if err != nil {
 			log.Fatal("Failed to encode int value for Dests", err)
 		}
-
 		err = w.WriteBytes(bytes)
 		if err != nil {
 			log.Fatal("Failed to write encoded value for Dests", err)
+		}
+
+		// Save the Dest24s structure
+		bytes, err2 = v.Dest24s.GobEncode()
+		if err2 != nil {
+			log.Fatal("Failed to encode cache value for Dest24s", err)
+		}
+		// Save how many bytes we will encode; needed for the decoding phase
+		var capbytes24 int = cap(bytes)
+		err = w.WriteInt(capbytes24)
+		if err != nil {
+			log.Fatal("Failed to encode int value for Dest24s", err)
+		}
+		err = w.WriteBytes(bytes)
+		if err != nil {
+			log.Fatal("Failed to write encoded value for Dest24s", err)
 		}
 
 	}

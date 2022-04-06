@@ -3,7 +3,6 @@ package annotate
 import (
 	"darknet-events/internal/analysis"
 	"darknet-events/internal/seqjson"
-	"darknet-events/internal/set"
 
 	"compress/gzip"
 	"encoding/base64"
@@ -31,10 +30,6 @@ import (
 
 // DarknetSize is the number of IP addresses in the darknet.
 var DarknetSize uint32 = 475136
-
-// SmallScanMargin is the number of unique destinations below which a scan is
-// considered "small".
-var SmallScanMargin int = int(DarknetSize) / 10
 
 // DarknetFactor is the multiplier to extrapolate darknet event values to
 // global values.
@@ -253,12 +248,6 @@ func (a *Annotator) Reader() {
 		es := e.Signature
 		ep := e.Packets
 
-		// Create sets to count the number of unique dests and /24 dests.
-		unique24s := set.NewUint32Set()
-		//for k := range *ep.Dests.Map() {
-		//	unique24s.Add(k & 0xffffff00)
-		//}
-
 		// Ignore if the number of unique destinations is too low.
 		if int(ep.Dests.Count()) < a.minUniques {
 			a.packetsIgnored += ep.Packets
@@ -391,7 +380,7 @@ func (a *Annotator) Reader() {
 			Packets:       ep.Packets,
 			Bytes:         ep.Bytes,
 			UniqueDests:   int(ep.Dests.Count()),
-			UniqueDest24s: unique24s.Size(),
+			UniqueDest24s: int(ep.Dest24s.Count()),
 			Lat:           latitude,
 			Long:          longitude,
 			Country:       country,

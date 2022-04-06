@@ -45,6 +45,7 @@ func NewEventSignature(sourceIP net.IP,
 // event.
 type EventPackets struct {
 	Dests   *hyperloglog.HyperLogLogPlus `msg:"-"`
+	Dest24s *hyperloglog.HyperLogLogPlus `msg:"-"`
 	First   time.Time
 	Latest  time.Time
 	Packets uint64
@@ -56,6 +57,7 @@ type EventPackets struct {
 func NewEventPackets() *EventPackets {
 	ep := new(EventPackets)
 	ep.Dests, _ = hyperloglog.NewPlus(5)
+	ep.Dest24s, _ = hyperloglog.NewPlus(5)
 	ep.Samples = make([][]byte, 0, 1)
 	return ep
 }
@@ -64,6 +66,8 @@ func NewEventPackets() *EventPackets {
 // index it would have been added at (they're actually added to a set).
 func (ep *EventPackets) Add(ip uint32, b uint64, t time.Time) int {
 	ep.Dests.Add(hash64(ip))
+	h.Reset()
+	ep.Dest24s.Add(hash64(ip & 0xffffff00))
 	h.Reset()
 	if ep.First.IsZero() {
 		ep.First = t
@@ -104,6 +108,8 @@ func (ep *EventPackets) Size() uintptr {
 	size += unsafe.Sizeof(ep)
 	tmp, _ := ep.Dests.GobEncode()
 	size += uintptr(len(tmp))
+	tmp24, _ := ep.Dest24s.GobEncode()
+	size += uintptr(len(tmp24))
 	for _, s := range ep.Samples {
 		size += uintptr(len(s))
 	}
