@@ -255,17 +255,17 @@ func (a *Annotator) Reader() {
 
 		// Create sets to count the number of unique dests and /24 dests.
 		unique24s := set.NewUint32Set()
-		for k := range *ep.Dests.Map() {
-			unique24s.Add(k & 0xffffff00)
-		}
+		//for k := range *ep.Dests.Map() {
+		//	unique24s.Add(k & 0xffffff00)
+		//}
 
 		// Ignore if the number of unique destinations is too low.
-		if ep.Dests.Size() < a.minUniques {
+		if int(ep.Dests.Count()) < a.minUniques {
 			a.packetsIgnored += ep.Packets
 			a.eventsIgnored++
 
-			// Update temporary stats.
-			for i := ep.Dests.Size(); i > 0; i-- {
+			// Update temporary stats. // TODO: Remove?
+			for i := int(ep.Dests.Count()); i > 0; i-- {
 				a.packetStats[i] += ep.Packets
 				a.eventStats[i]++
 			}
@@ -280,8 +280,8 @@ func (a *Annotator) Reader() {
 			a.packetsIgnored += ep.Packets
 			a.eventsIgnored++
 
-			// Update temporary stats.
-			for i := ep.Dests.Size(); i > 0; i-- {
+			// Update temporary stats. // TODO: Remove?
+			for i := int(ep.Dests.Count()); i > 0; i-- {
 				a.packetStats[i] += ep.Packets
 				a.eventStats[i]++
 			}
@@ -390,7 +390,7 @@ func (a *Annotator) Reader() {
 			Last:          ep.Latest,
 			Packets:       ep.Packets,
 			Bytes:         ep.Bytes,
-			UniqueDests:   ep.Dests.Size(),
+			UniqueDests:   int(ep.Dests.Count()),
 			UniqueDest24s: unique24s.Size(),
 			Lat:           latitude,
 			Long:          longitude,
