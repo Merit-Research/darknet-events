@@ -3,7 +3,9 @@ module darknet-events
 go 1.12
 
 require (
+	github.com/OneOfOne/xxhash v1.2.8
 	github.com/asergeyev/nradix v0.0.0-20170505151046-3872ab85bb56 // indirect
+	github.com/clarkduvall/hyperloglog v0.0.0-20171127014514-a0107a5d8004
 	github.com/google/gopacket v1.1.19
 	github.com/miekg/dns v1.1.27
 	github.com/oschwald/geoip2-golang v1.4.0

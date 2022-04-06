@@ -3,6 +3,7 @@ package cache
 //go:generate msgp
 
 import (
+	"github.com/clarkduvall/hyperloglog"
 	"io"
 	"log"
 	"os"
@@ -258,6 +259,25 @@ func (c *Cache) load(in io.Reader) {
 		if err != nil {
 			break
 		}
+
+		capbytes, err := r.ReadInt()
+		if err != nil {
+			log.Fatal("Could not decode number of bytes: ", err)
+		}
+
+		buf := make([]byte, capbytes)
+		buf, err = r.ReadBytes(buf)
+		if err != nil {
+			err = msgp.WrapError(err, "Dest bytes", buf)
+			return
+		}
+
+		v.Dests, _ = hyperloglog.NewPlus(5)
+		err = v.Dests.GobDecode(buf)
+		if err != nil {
+			log.Fatal("Could not Decode Dests", err)
+		}
+
 		c.Cache[k] = &v
 		i++
 	}
@@ -296,6 +316,24 @@ func (c *Cache) dump(out io.Writer) {
 		if err != nil {
 			log.Fatal("Failed to encode cache value: ", err)
 		}
+
+		bytes, err2 := v.Dests.GobEncode()
+		if err2 != nil {
+			log.Fatal("Failed to encode cache value for Dests", err)
+		}
+
+		// Save how many bytes we will encode; needed for the decoding phase
+		var capbytes int = cap(bytes)
+		err = w.WriteInt(capbytes)
+		if err != nil {
+			log.Fatal("Failed to encode int value for Dests", err)
+		}
+
+		err = w.WriteBytes(bytes)
+		if err != nil {
+			log.Fatal("Failed to write encoded value for Dests", err)
+		}
+
 	}
 	err = w.Flush()
 	if err != nil {

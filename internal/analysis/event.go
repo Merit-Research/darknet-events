@@ -4,12 +4,23 @@ package analysis
 
 import (
 	"encoding/binary"
+	"hash"
 	"net"
 	"time"
 	"unsafe"
 
-	"darknet-events/internal/set"
+	"github.com/OneOfOne/xxhash"
+	"github.com/clarkduvall/hyperloglog"
+	//"darknet-events/internal/set"
 )
+
+var h hash.Hash64 = xxhash.New64()
+
+func hash64(ip uint32) hash.Hash64 {
+	b := (*[4]byte)(unsafe.Pointer(&ip))
+	h.Write(b[:])
+	return h
+}
 
 // EventSignature is the data structure used to associate different packets to
 // a single source and/or being of the same event.
@@ -33,7 +44,7 @@ func NewEventSignature(sourceIP net.IP,
 // EventPackets collects the data pulled from multiple packets of the same
 // event.
 type EventPackets struct {
-	Dests   *set.Uint32Set
+	Dests   *hyperloglog.HyperLogLogPlus `msg:"-"`
 	First   time.Time
 	Latest  time.Time
 	Packets uint64
@@ -44,7 +55,7 @@ type EventPackets struct {
 // NewEventPackets returns a new EventPackets object.
 func NewEventPackets() *EventPackets {
 	ep := new(EventPackets)
-	ep.Dests = set.NewUint32Set()
+	ep.Dests, _ = hyperloglog.NewPlus(5)
 	ep.Samples = make([][]byte, 0, 1)
 	return ep
 }
@@ -52,7 +63,8 @@ func NewEventPackets() *EventPackets {
 // Add adds the destination IP to the packet collection object and returns the
 // index it would have been added at (they're actually added to a set).
 func (ep *EventPackets) Add(ip uint32, b uint64, t time.Time) int {
-	ep.Dests.Add(ip)
+	ep.Dests.Add(hash64(ip))
+	h.Reset()
 	if ep.First.IsZero() {
 		ep.First = t
 	}
@@ -90,7 +102,8 @@ func (ep *EventPackets) AddSample(i int, raw []byte) {
 func (ep *EventPackets) Size() uintptr {
 	var size uintptr
 	size += unsafe.Sizeof(ep)
-	size += uintptr(ep.Dests.ByteSize())
+	tmp, _ := ep.Dests.GobEncode()
+	size += uintptr(len(tmp))
 	for _, s := range ep.Samples {
 		size += uintptr(len(s))
 	}
