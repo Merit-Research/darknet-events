@@ -1,7 +1,7 @@
 //
 // All software tools within this package are Copyright (c) 2020 Merit Network, Inc.,
 // and Stanford University. All Rights Reserved.
-// 
+//
 
 package main
 
@@ -9,9 +9,10 @@ import (
 	"darknet-events/internal/annotate"
 	"darknet-events/internal/cache"
 	"darknet-events/internal/decode"
+	"github.com/google/gopacket"
+	"io"
 
 	"flag"
-	"io"
 	"log"
 	"os"
 	"runtime"
@@ -42,6 +43,11 @@ type Config struct {
 	Newdl                 bool
 }
 
+type packetItem struct {
+	read []byte
+	meta gopacket.CaptureInfo
+}
+
 // config loads configuration information from the given flags. It is expected
 // that this slice is os.Args.
 func config() *Config {
@@ -50,7 +56,7 @@ func config() *Config {
 	threshold := flag.Int("threshold", 0, "Number of seconds that "+
 		"must elapse before an event is considered over.")
 	minUniques := flag.Int("uniques", 1, "Minimum number of unique "+
-		"destinations that must be hit for an event to be considered (must " +
+		"destinations that must be hit for an event to be considered (must "+
 		"be a positive number).")
 	minScanRate := flag.Float64("rate", 0, "Minimum global packet rate for "+
 		"an event to be considered.")
@@ -132,6 +138,7 @@ func main() {
 	}()
 
 	cfg := config()
+	packetChannel := make(chan packetItem, 1)
 
 	// Start CPU profiling if necessary.
 	if cfg.ProfileCPUPath != "" {
@@ -205,20 +212,27 @@ func main() {
 			log.Fatal("Failed to open pcap file: ", err)
 		}
 
-		for {
-			read, meta, err := handle.ReadPacketData()
-			// TODO: Check sampling with:
-			// read, meta, err := handle.ZeroCopyReadPacketData()
-			if err != nil {
-				if err == io.EOF {
-					break
+		go func(handle *pcapgo.Reader) {
+			defer close(packetChannel)
+			for {
+				var pi packetItem
+				pi.read, pi.meta, err = handle.ReadPacketData()
+				packetChannel <- pi
+				// TODO: Check sampling with:
+				// read, meta, err := handle.ZeroCopyReadPacketData()
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					log.Fatal("Could not read packet data: ", err)
 				}
-				log.Fatal("Could not read packet data: ", err)
 			}
+		}(handle)
 
+		for packet := range packetChannel {
 			// TODO: Is meta.CaptureLength == len(read)?
-			event, dest, time := d.Decode(read, meta)
-			c.Add(*event, dest, time, read)
+			event, dest, time := d.Decode(packet.read, packet.meta)
+			c.Add(*event, dest, time, packet.read)
 		}
 
 		log.Printf("Decoded %s, cache size is %d bytes.\n", path, c.Size())
