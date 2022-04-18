@@ -1,7 +1,7 @@
 //
 // All software tools within this package are Copyright (c) 2020 Merit Network, Inc.,
 // and Stanford University. All Rights Reserved.
-// 
+//
 
 package main
 
@@ -9,6 +9,10 @@ import (
 	"darknet-events/internal/annotate"
 	"darknet-events/internal/cache"
 	"darknet-events/internal/decode"
+	"github.com/OneOfOne/xxhash"
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+	"hash"
 
 	"flag"
 	"io"
@@ -42,6 +46,8 @@ type Config struct {
 	Newdl                 bool
 }
 
+var h32 hash.Hash32 = xxhash.New32()
+
 // config loads configuration information from the given flags. It is expected
 // that this slice is os.Args.
 func config() *Config {
@@ -50,7 +56,7 @@ func config() *Config {
 	threshold := flag.Int("threshold", 0, "Number of seconds that "+
 		"must elapse before an event is considered over.")
 	minUniques := flag.Int("uniques", 1, "Minimum number of unique "+
-		"destinations that must be hit for an event to be considered (must " +
+		"destinations that must be hit for an event to be considered (must "+
 		"be a positive number).")
 	minScanRate := flag.Float64("rate", 0, "Minimum global packet rate for "+
 		"an event to be considered.")
@@ -215,6 +221,12 @@ func main() {
 				}
 				log.Fatal("Could not read packet data: ", err)
 			}
+
+			ethP := gopacket.NewPacket(read, layers.LayerTypeEthernet, gopacket.Default)
+			source := ethP.Layer(layers.LayerTypeIPv4).(*layers.IPv4).SrcIP
+			h32.Write([]byte(source)[:4])
+			//fmt.Println(h32.Sum32() >> 30, source.To4())
+			h32.Reset()
 
 			// TODO: Is meta.CaptureLength == len(read)?
 			event, dest, time := d.Decode(read, meta)
