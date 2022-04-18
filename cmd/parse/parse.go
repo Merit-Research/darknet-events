@@ -9,11 +9,6 @@ import (
 	"darknet-events/internal/annotate"
 	"darknet-events/internal/cache"
 	"darknet-events/internal/decode"
-	"github.com/OneOfOne/xxhash"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"hash"
-
 	"flag"
 	"io"
 	"log"
@@ -45,8 +40,6 @@ type Config struct {
 	ProfileMemPath        string
 	Newdl                 bool
 }
-
-var h32 hash.Hash32 = xxhash.New32()
 
 // config loads configuration information from the given flags. It is expected
 // that this slice is os.Args.
@@ -214,19 +207,13 @@ func main() {
 		for {
 			read, meta, err := handle.ReadPacketData()
 			// TODO: Check sampling with:
-			// read, meta, err := handle.ZeroCopyReadPacketData()
+			//read, meta, err := handle.ZeroCopyReadPacketData()
 			if err != nil {
 				if err == io.EOF {
 					break
 				}
 				log.Fatal("Could not read packet data: ", err)
 			}
-
-			ethP := gopacket.NewPacket(read, layers.LayerTypeEthernet, gopacket.Default)
-			source := ethP.Layer(layers.LayerTypeIPv4).(*layers.IPv4).SrcIP
-			h32.Write([]byte(source)[:4])
-			//fmt.Println(h32.Sum32() >> 30, source.To4())
-			h32.Reset()
 
 			// TODO: Is meta.CaptureLength == len(read)?
 			event, dest, time := d.Decode(read, meta)
