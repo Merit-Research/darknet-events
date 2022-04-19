@@ -271,7 +271,7 @@ func (c *Cache) load(in io.Reader) {
 			err = msgp.WrapError(err, "Dest bytes", buf)
 			return
 		}
-		v.Dests, _ = hyperloglog.NewPlus(5)
+		v.Dests, _ = hyperloglog.NewPlus(analysis.HyperLogLogPrecision)
 		err = v.Dests.GobDecode(buf)
 		if err != nil {
 			log.Fatal("Could not Decode Dests", err)
@@ -288,7 +288,7 @@ func (c *Cache) load(in io.Reader) {
 			err = msgp.WrapError(err, "Dest24s bytes", buf)
 			return
 		}
-		v.Dest24s, _ = hyperloglog.NewPlus(5)
+		v.Dest24s, _ = hyperloglog.NewPlus(analysis.HyperLogLogPrecision)
 		err = v.Dest24s.GobDecode(buf24)
 		if err != nil {
 			log.Fatal("Could not Decode Dests", err)

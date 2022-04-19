@@ -16,6 +16,8 @@ import (
 
 var h hash.Hash64 = xxhash.New64()
 
+var HyperLogLogPrecision uint8 = 8
+
 func hash64(ip uint32) hash.Hash64 {
 	b := (*[4]byte)(unsafe.Pointer(&ip))
 	h.Write(b[:])
@@ -56,8 +58,8 @@ type EventPackets struct {
 // NewEventPackets returns a new EventPackets object.
 func NewEventPackets() *EventPackets {
 	ep := new(EventPackets)
-	ep.Dests, _ = hyperloglog.NewPlus(5)
-	ep.Dest24s, _ = hyperloglog.NewPlus(5)
+	ep.Dests, _ = hyperloglog.NewPlus(HyperLogLogPrecision)
+	ep.Dest24s, _ = hyperloglog.NewPlus(HyperLogLogPrecision)
 	ep.Samples = make([][]byte, 0, 1)
 	return ep
 }
