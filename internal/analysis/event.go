@@ -16,7 +16,7 @@ import (
 
 var h hash.Hash64 = xxhash.New64()
 
-var HyperLogLogPrecision uint8 = 8
+var HyperLogLogPrecision uint8 = 12
 
 func hash64(ip uint32) hash.Hash64 {
 	b := (*[4]byte)(unsafe.Pointer(&ip))
