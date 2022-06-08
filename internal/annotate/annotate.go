@@ -379,6 +379,10 @@ func (a *Annotator) Reader() {
 					if mirai && dstIP != seq {
 						mirai = false
 					}
+				} else {
+					zmap = false
+					masscan = false
+					mirai = false
 				}
 			}
 		}
