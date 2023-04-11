@@ -11,16 +11,46 @@ import (
 	"github.com/google/gopacket/layers"
 )
 
+// register new inner ipv4 layer for proto 4
+var LayerTypeIPv4Inner = gopacket.RegisterLayerType(1000, gopacket.LayerTypeMetadata{Name: "IP_in_IP", Decoder: nil})
+
+// outer IPv4 (any v4 packet)
+type IPv4Outer struct {
+	layers.IPv4
+}
+
+func (i *IPv4Outer) NextLayerType() gopacket.LayerType {
+	if i.Flags&layers.IPv4MoreFragments != 0 || i.FragOffset != 0 {
+		return gopacket.LayerTypeFragment
+	}
+
+	if i.Protocol == 4 {
+		return LayerTypeIPv4Inner
+	}
+
+	return i.Protocol.LayerType()
+}
+
+// inner v4 packet for proto 4
+type IPv4Inner struct {
+	layers.IPv4
+}
+
+func (i *IPv4Inner) CanDecode() gopacket.LayerClass {
+	return LayerTypeIPv4Inner
+}
+
 // Decoder is a wrapper around gopacket's DecodingLayerParser that holds useful
 // variables for ease of use.
 type Decoder struct {
-	eth      layers.Ethernet
-	ip4      layers.IPv4
-	ip6      layers.IPv6
-	icmp4    layers.ICMPv4
-	icmp6    layers.ICMPv6
-	tcp      layers.TCP
-	udp      layers.UDP
+	eth   layers.Ethernet
+	ip4   IPv4Outer
+	ipip4 IPv4Inner
+	ip6   layers.IPv6
+	icmp4 layers.ICMPv4
+	icmp6 layers.ICMPv6
+	tcp   layers.TCP
+	udp   layers.UDP
 	//sip      layers.SIP
 	//dns      layers.DNS
 	//ntp      layers.NTP
@@ -34,8 +64,8 @@ type Decoder struct {
 func NewDecoder() *Decoder {
 	d := new(Decoder)
 	d.parser = gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet,
-		&d.eth, &d.ip4, &d.ip6, &d.icmp4, &d.icmp6, &d.tcp, &d.udp, &d.pay)
-		//&d.sip, &d.dns, &d.ntp, &d.pay)
+		&d.eth, &d.ip4, &d.ipip4, &d.ip6, &d.icmp4, &d.icmp6, &d.tcp, &d.udp, &d.pay)
+	//&d.sip, &d.dns, &d.ntp, &d.pay)
 	d.types = make([]gopacket.LayerType, 10, 10)
 	d.parser.IgnoreUnsupported = true
 	d.unknowns = make(map[string]uint)
@@ -125,11 +155,11 @@ func (d *Decoder) Decode(read []byte,
 		port = 0
 		switch d.icmp6.TypeCode.Type() {
 		/*
-			https://tools.ietf.org/html/rfc4443
-			ICMPv6 is used by IPv6 nodes to report errors encountered in
-		    processing packets, and to perform other internet-layer functions,
-			such as diagnostics (ICMPv6 "ping").
-			*/
+				https://tools.ietf.org/html/rfc4443
+				ICMPv6 is used by IPv6 nodes to report errors encountered in
+			    processing packets, and to perform other internet-layer functions,
+				such as diagnostics (ICMPv6 "ping").
+		*/
 		// https://github.com/google/gopacket/blob/a9779d139771f6a06fc983b18e0efd23ca30222f/layers/icmp6.go#L19
 		case layers.ICMPv6TypeDestinationUnreachable:
 			traffic = analysis.ICMPDestinationUnreachable
