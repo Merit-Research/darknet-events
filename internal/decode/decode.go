@@ -110,7 +110,7 @@ func (d *Decoder) Decode(read []byte,
 	}
 
 	var port uint16
-	var traffic analysis.TrafficType
+	var traffic = analysis.UnknownTraffic
 	var transport gopacket.LayerType
 
 	if d.types[1] == layers.LayerTypeIPv4 {
