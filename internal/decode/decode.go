@@ -116,7 +116,7 @@ func (d *Decoder) Decode(read []byte,
 	if d.types[1] == layers.LayerTypeIPv4 {
 		// for v4 packets, assume that the third element is the transport layer
 		transport = d.types[2]
-		if transport == layers.LayerTypeIPv6 || transport == layers.LayerTypeIPv4 {
+		if transport == layers.LayerTypeIPv6 || transport == layers.LayerTypeIPv4 || transport == 1000 {
 			// this is the case where this is a 6to4 packet or IP-in-IP
 			// these packets are effectively ignored to preserve previous
 			// functionality and may be changed in the future
