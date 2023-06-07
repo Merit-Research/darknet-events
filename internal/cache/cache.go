@@ -39,6 +39,8 @@ type Cache struct {
 	timeout time.Duration
 	// File path to write new cache state to.
 	outPath string
+	// is this a v6 cache?
+	IsIPV6 bool
 	// The channel to send expired events to.
 	eventChannel chan *analysis.Event
 	// The channel to send ongoing events to (can be nil).
@@ -117,8 +119,10 @@ func (c *Cache) Add(es analysis.EventSignature,
 		// check whether this is an IPv4/v6 address
 		if ip.To4() != nil {
 			c.Cache[es] = analysis.NewEventPacketsIPv4()
+			c.IsIPV6 = false
 		} else {
 			c.Cache[es] = analysis.NewEventPacketsIPv6()
+			c.IsIPV6 = true
 		}
 	}
 
@@ -278,29 +282,44 @@ func (c *Cache) load(in io.Reader) {
 	if err != nil {
 		log.Fatal("Failed to decode cache metadata")
 	}
-	// i := 0
 
-	var err1 error
-	var err2 error
-	kIPv4 := analysis.EventSourceIPv4{}
-	kIPv6 := analysis.EventSourceIPv6{}
-	err1 = kIPv4.DecodeMsg(r)
-	err2 = kIPv6.DecodeMsg(r)
+	if c.IsIPV6 {
+		i := 0
+		for err == nil {
+			k := analysis.EventSignatureIPv6{}
+			err = k.DecodeMsg(r)
+			if err != nil {
+				break
+			}
 
-	if err1 == nil {
-		sIPv4 := analysis.EventSignatureIPv4 {
-			SourceIPv4: kIPv4.SourceIPv4,
-			Port: 		kIPv4.Port,
-			Traffic: 	kIPv4.Traffic }
-		c.Cache[&sIPv4] = &analysis.EventPacketsIPv4{}
-	} else if err2 == nil {
-		sIPv6 := analysis.EventSignatureIPv6{
-			SourceIPv6: kIPv6.SourceIPv6,
-			Port:       kIPv6.Port,
-			Traffic:    kIPv6.Traffic }
-		c.Cache[&sIPv6] = &analysis.EventPacketsIPv6{}
+			v := analysis.EventPacketsIPv6{}
+			err = v.DecodeMsg(r)
+			if err != nil {
+				break
+			}
+
+			c.Cache[k] = &v
+			i++
+		}
+	} else {
+		i := 0
+		for err == nil {
+			k := analysis.EventSignatureIPv4{}
+			err = k.DecodeMsg(r)
+			if err != nil {
+				break
+			}
+
+			v := analysis.EventPacketsIPv4{}
+			err = v.DecodeMsg(r)
+			if err != nil {
+				break
+			}
+
+			c.Cache[k] = &v
+			i++
+		}
 	}
-		// i++
 
 	if msgp.Cause(err) != io.EOF {
 		log.Printf("%T\n", msgp.Cause(err))

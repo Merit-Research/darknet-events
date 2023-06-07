@@ -247,7 +247,7 @@ func (a *Annotator) Close() {
 
 type Unique24s struct {
 	Unique24sIPv4 set.Uint32Set
-	Unique24sIPv6 set.IPSet
+	Unique64sIPv6 analysis.IPv6AddrSet
 }
 
 // Reader sits in a loop taking in events and annotates them with useful
@@ -328,7 +328,7 @@ func (a *Annotator) Reader() {
 			sourceIP = make(net.IP, 16)
 			copy(sourceIP, s.SourceIPv6[:])
 			uniqueDestsSize = epIPv6.DestIPv6.Size()
-			unique24sSize = -1
+			unique24sSize = epIPv6.DestIPv6.Dest64s().Size()
 		} // switch
 
 		// If this is a TCP packet, check if its from zmap, masscan, or mirai.
@@ -379,6 +379,10 @@ func (a *Annotator) Reader() {
 					if mirai && dstIP != seq {
 						mirai = false
 					}
+				} else {
+					zmap = false
+					masscan = false
+					mirai = false
 				}
 			}
 		}
@@ -442,13 +446,13 @@ func (a *Annotator) Reader() {
 			Bytes:         ep.GetBytes(),
 			UniqueDests:   uniqueDestsSize,
 			UniqueDest24s: unique24sSize,
-			Lat:           latitude,		// geoip
-			Long:          longitude,	    // geoip
-			Country:       country,		    // geoip
-			City:          city,            // geoip
-			ASN:           asnNumber,       // asn
-			Org:           organisation,    // asn
-			Prefix:        routedPrefix,    // pfx2as
+			Lat:           latitude,     // geoip
+			Long:          longitude,    // geoip
+			Country:       country,      // geoip
+			City:          city,         // geoip
+			ASN:           asnNumber,    // asn
+			Org:           organisation, // asn
+			Prefix:        routedPrefix, // pfx2as
 			Zmap:          zmap,
 			Masscan:       masscan,
 			Mirai:         mirai,
