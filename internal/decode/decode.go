@@ -76,6 +76,29 @@ func (d *Decoder) Decode(read []byte,
 	var traffic analysis.TrafficType
 
 	switch d.types[2] {
+	case layers.LayerTypeTCP:
+		otherFlags := d.tcp.FIN || d.tcp.PSH || d.tcp.URG ||
+			d.tcp.ECE || d.tcp.CWR || d.tcp.NS
+		if !d.tcp.ACK && d.tcp.SYN && !d.tcp.RST && !otherFlags {
+			traffic = analysis.TCPSYN
+			port = uint16(d.tcp.DstPort)
+		} else if d.tcp.ACK && d.tcp.SYN && !d.tcp.RST && !otherFlags {
+			traffic = analysis.TCPSYNACK
+			port = uint16(d.tcp.SrcPort)
+		} else if d.tcp.ACK && !d.tcp.SYN && !d.tcp.RST && !otherFlags {
+			traffic = analysis.TCPACK
+			port = uint16(d.tcp.DstPort)
+		} else if !d.tcp.ACK && !d.tcp.SYN && d.tcp.RST && !otherFlags {
+			traffic = analysis.TCPRST
+			port = uint16(d.tcp.SrcPort)
+		} else {
+			traffic = analysis.TCPOther
+			// Default port is dest port.
+			port = uint16(d.tcp.DstPort)
+		}
+	case layers.LayerTypeUDP:
+		port = uint16(d.udp.DstPort)
+		traffic = analysis.UDP
 	case layers.LayerTypeICMPv4:
 		port = 0
 		switch d.icmp4.TypeCode.Type() {
@@ -102,29 +125,6 @@ func (d *Decoder) Decode(read []byte,
 		default:
 			traffic = analysis.ICMPOther
 		}
-	case layers.LayerTypeTCP:
-		otherFlags := d.tcp.FIN || d.tcp.PSH || d.tcp.URG ||
-			d.tcp.ECE || d.tcp.CWR || d.tcp.NS
-		if !d.tcp.ACK && d.tcp.SYN && !d.tcp.RST && !otherFlags {
-			traffic = analysis.TCPSYN
-			port = uint16(d.tcp.DstPort)
-		} else if d.tcp.ACK && d.tcp.SYN && !d.tcp.RST && !otherFlags {
-			traffic = analysis.TCPSYNACK
-			port = uint16(d.tcp.SrcPort)
-		} else if d.tcp.ACK && !d.tcp.SYN && !d.tcp.RST && !otherFlags {
-			traffic = analysis.TCPACK
-			port = uint16(d.tcp.DstPort)
-		} else if !d.tcp.ACK && !d.tcp.SYN && d.tcp.RST && !otherFlags {
-			traffic = analysis.TCPRST
-			port = uint16(d.tcp.SrcPort)
-		} else {
-			traffic = analysis.TCPOther
-			// Default port is dest port.
-			port = uint16(d.tcp.DstPort)
-		}
-	case layers.LayerTypeUDP:
-		port = uint16(d.udp.DstPort)
-		traffic = analysis.UDP
 	case layers.LayerTypeIPv4:
 		// This handles the IP-IP case (encapsulated IP packets)
 		traffic = analysis.UnknownTraffic
