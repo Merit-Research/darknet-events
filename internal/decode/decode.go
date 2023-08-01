@@ -14,11 +14,11 @@ import (
 // Decoder is a wrapper around gopacket's DecodingLayerParser that holds useful
 // variables for ease of use.
 type Decoder struct {
-	eth      layers.Ethernet
-	ip4      layers.IPv4
-	icmp4    layers.ICMPv4
-	tcp      layers.TCP
-	udp      layers.UDP
+	eth   layers.Ethernet
+	ip4   layers.IPv4
+	icmp4 layers.ICMPv4
+	tcp   layers.TCP
+	udp   layers.UDP
 	//sip      layers.SIP
 	//dns      layers.DNS
 	//ntp      layers.NTP
@@ -34,7 +34,7 @@ func NewDecoder() *Decoder {
 	d.parser = gopacket.NewDecodingLayerParser(layers.LayerTypeEthernet,
 		&d.eth, &d.ip4, &d.icmp4, &d.tcp, &d.udp,
 		&d.pay)
-		//&d.sip, &d.dns, &d.ntp, &d.pay)
+	//&d.sip, &d.dns, &d.ntp, &d.pay)
 	d.types = make([]gopacket.LayerType, 4, 4)
 	d.parser.IgnoreUnsupported = true
 	d.unknowns = make(map[string]uint)
@@ -125,8 +125,28 @@ func (d *Decoder) Decode(read []byte,
 	case layers.LayerTypeUDP:
 		port = uint16(d.udp.DstPort)
 		traffic = analysis.UDP
+	case layers.LayerTypeIPv4:
+		// This handles the IP-IP case (encapsulated IP packets)
+		traffic = analysis.UnknownTraffic
+		port = 0
+		packet := gopacket.NewPacket(read, layers.LayerTypeEthernet, gopacket.Default)
+		ipLayer := packet.Layer(layers.LayerTypeIPv4)
+		ip4, ok := ipLayer.(*layers.IPv4) // Doing the necessary casting, because ipLayer is just an interface
+		if !ok {
+			// Shouldn't be reached since there must be a valid outer IP header,
+			// otherwise this packet would not have reached our Darknet
+			log.Println("Error decoding outer IPv4 header of IP-IP (proto 4) packet.")
+		}
+		// log.Println("Outer IPv4 layer of IP-IP packet:", d.types[2].String(), ip4.SrcIP)
+
+		es := analysis.NewEventSignature(ip4.SrcIP, port, traffic)
+		ip := binary.BigEndian.Uint32(ip4.DstIP.To4())
+		t := meta.Timestamp
+
+		return es, ip, t
 	default:
 		// Shouldn't be reached (should be classified as unknown above).
+		traffic = analysis.UnknownTraffic
 		log.Println("Unknown transport layer:", d.types[2].String())
 	}
 
