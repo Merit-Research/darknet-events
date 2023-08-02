@@ -2,6 +2,7 @@ package decode
 
 import (
 	"darknet-events/internal/analysis"
+	"net"
 
 	"encoding/binary"
 	"log"
@@ -53,12 +54,23 @@ func (d *Decoder) Decode(read []byte,
 		if ok {
 			d.unknowns[gopacket.LayerType(ult).String()]++
 		}
-		es := analysis.NewEventSignature(d.ip4.SrcIP,
-			0, analysis.UnknownTraffic)
-		// The darknet only saves IPv4 packets so calling To4() is safe.
-		ip := binary.BigEndian.Uint32(d.ip4.DstIP.To4())
-		t := meta.Timestamp
+		// Let's attempt to get the (outermost) IPv4 of this packet...
+		packet := gopacket.NewPacket(read, layers.LayerTypeEthernet, gopacket.Default)
+		ipLayer := packet.Layer(layers.LayerTypeIPv4)
+		ip4, ok := ipLayer.(*layers.IPv4) // Doing the necessary casting, because ipLayer is just an interface
+		if !ok {
+			// Shouldn't be reached since there must be a valid outer IP header,
+			// otherwise this packet would not have reached our Darknet
+			log.Println("Error decoding outer IPv4 header of packet.")
+			es := analysis.NewEventSignature(net.IPv4(0, 0, 0, 0), 0, analysis.UnknownTraffic)
+			ip := binary.BigEndian.Uint32(net.IPv4(0, 0, 0, 0).To4())
+			t := meta.Timestamp
+			return es, ip, t
+		}
 
+		es := analysis.NewEventSignature(ip4.SrcIP, 0, analysis.UnknownTraffic)
+		ip := binary.BigEndian.Uint32(ip4.DstIP.To4())
+		t := meta.Timestamp
 		return es, ip, t
 	}
 
@@ -137,7 +149,7 @@ func (d *Decoder) Decode(read []byte,
 			// otherwise this packet would not have reached our Darknet
 			log.Println("Error decoding outer IPv4 header of IP-IP (proto 4) packet.")
 		}
-		// log.Println("Outer IPv4 layer of IP-IP packet:", d.types[2].String(), ip4.SrcIP)
+		// log.Println("Outer IPv4 layer of IP-IP packet:", d.types[2].String(), ip4.SrcIP, ip4.DstIP)
 
 		es := analysis.NewEventSignature(ip4.SrcIP, port, traffic)
 		ip := binary.BigEndian.Uint32(ip4.DstIP.To4())
