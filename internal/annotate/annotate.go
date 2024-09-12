@@ -51,13 +51,13 @@ type Output struct {
 	Bytes         uint64
 	UniqueDests   int
 	UniqueDest24s int
-	Lat           float64
-	Long          float64
-	Country       string
-	City          string
-	ASN           int
-	Org           string
-	Prefix        string
+	Lat           *float64  `json:",omitempty"`
+	Long          *float64  `json:",omitempty"`
+	Country       *string   `json:",omitempty"`
+	City          *string   `json:",omitempty"`
+	ASN           *int      `json:",omitempty"`
+	Org           *string   `json:",omitempty"`
+	Prefix        *string   `json:",omitempty"`
 	RDNS          []string
 	Zmap          bool
 	Masscan       bool
@@ -338,41 +338,44 @@ func (a *Annotator) Reader() {
 		}
 
 		// Get geographic data for the source IP.
-		var latitude float64
-		var longitude float64
-		var country string
-		var city string
+		var latitude *float64
+		var longitude *float64
+		var country *string
+		var city *string
 		if a.locations != nil {
 			location, err := a.locations.City(sourceIP)
 			if err != nil {
 				log.Fatalf("Couldn't check location for IP: %s.\n", err)
 			}
-			latitude = location.Location.Latitude
-			longitude = location.Location.Longitude
-			country = location.Country.IsoCode
-			city = location.City.Names["en"]
+			latitude = &location.Location.Latitude
+			longitude = &location.Location.Longitude
+			country = &location.Country.IsoCode
+			cityName := location.City.Names["en"]
+			city = &cityName
 		}
 
-		var asnNumber uint
-		var organisation string
+		var asnNumber *int
+		var organisation *string
 		if a.asns != nil {
 			asn, err := a.asns.ASN(sourceIP)
 			if err != nil {
 				log.Fatalf("Couldn't check ASN data for IP: %s\n", err)
 			}
-			asnNumber = asn.AutonomousSystemNumber
-			organisation = asn.AutonomousSystemOrganization
+			temp := int(asn.AutonomousSystemNumber)
+			asnNumber = &temp
+			organisation = &asn.AutonomousSystemOrganization
 		}
 
 		// Get prefix data.
-		var routedPrefix string
+		var routedPrefix *string
 		if a.prefixes != nil {
 			val, ok, err := a.prefixes.Get(sourceIP)
 			if err != nil {
 				log.Fatalf("Couldn't look up IP prefix: %s.\n", err)
 			}
 			if err == nil && ok {
-				routedPrefix = val.(string)
+				temp := val.(string)
+				routedPrefix = &temp
 			}
 		}
 
@@ -380,6 +383,27 @@ func (a *Annotator) Reader() {
 		samples := make([]string, len(ep.Samples))
 		for i := 0; i < len(ep.Samples); i++ {
 			samples[i] = base64.StdEncoding.EncodeToString(ep.Samples[i])
+		}
+
+		// not consume empty string pointers
+		// notice the difference from invalid pointers
+		if country != nil && *country == "" {
+			country = nil
+		}
+		if city != nil && *city == "" {
+			city = nil
+		}
+		if organisation != nil && *organisation == "" {
+			organisation = nil
+		}
+		if asnNumber != nil && *asnNumber == 0 {
+			asnNumber = nil
+		}
+		if latitude != nil && longitude != nil {
+			if *latitude == 0.0 && *longitude == 0.0 {
+				latitude = nil
+				longitude = nil
+			}
 		}
 
 		output := Output{
@@ -392,13 +416,13 @@ func (a *Annotator) Reader() {
 			Bytes:         ep.Bytes,
 			UniqueDests:   ep.Dests.Size(),
 			UniqueDest24s: unique24s.Size(),
-			Lat:           latitude,
-			Long:          longitude,
-			Country:       country,
-			City:          city,
-			ASN:           int(asnNumber),
-			Org:           organisation,
-			Prefix:        routedPrefix,
+			Lat:           latitude,		// geoip
+			Long:          longitude,	    // geoip
+			Country:       country,		    // geoip
+			City:          city,            // geoip
+			ASN:           asnNumber,       // asn
+			Org:           organisation,    // asn
+			Prefix:        routedPrefix,    // pfx2as
 			Zmap:          zmap,
 			Masscan:       masscan,
 			Mirai:         mirai,
